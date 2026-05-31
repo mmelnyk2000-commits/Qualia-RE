@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a3a1a">
+<title>🌴 DR Norte · Propiedades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark:#1a3a1a;--green-mid:#2d5a1a;--green-light:#4a7c2a;
+    --terra:#8b4513;--sand:#f5f0e8;--sand-light:#fffdf7;--sand-mid:#efe8d8;
+    --ink:#1a1208;--muted:#8b6b3d;--faint:#e4d8c0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--sand);font-family:'Lato',sans-serif;color:var(--ink);overflow:hidden}
+  ::-webkit-scrollbar{display:none}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:540px;margin:0 auto;position:relative}
+
+  /* Header */
+  #header{background:linear-gradient(135deg,var(--green-dark) 0%,var(--green-mid) 70%,var(--green-light) 100%);padding:20px 18px 16px;padding-top:calc(20px + env(safe-area-inset-top));flex-shrink:0}
+  #header-row{display:flex;justify-content:space-between;align-items:center}
+  #wordmark{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f0e8d0}
+  #data-status{font-size:10px;color:#88b870;letter-spacing:.1em;margin-top:3px;min-height:14px}
+  .btn-filter{background:rgba(255,255,255,.15);border:none;border-radius:20px;padding:8px 14px;color:#fff;font-size:13px;cursor:pointer;font-weight:700;font-family:'Lato',sans-serif;transition:background .15s}
+  .btn-filter.active{background:var(--terra)}
+  #search-wrap{margin-top:12px;position:relative;display:none}
+  #search-input{width:100%;padding:11px 14px 11px 38px;border:none;border-radius:12px;font-size:15px;background:rgba(255,255,255,.95);color:var(--ink);font-family:'Lato',sans-serif;outline:none}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none}
+
+  /* Scroll */
+  #scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 0}
+
+  /* Nav */
+  #bottom-nav{display:flex;background:var(--sand-light);border-top:1px solid var(--faint);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+  .nav-btn{flex:1;padding:12px 0 10px;border:none;background:none;cursor:pointer;color:#bbb;border-top:2.5px solid transparent;transition:color .15s,border-color .15s;font-family:'Lato',sans-serif}
+  .nav-btn.active{color:var(--terra);border-top-color:var(--terra)}
+  .nav-icon{font-size:20px;display:block}
+  .nav-label{font-size:11px;font-weight:700;margin-top:2px;display:block}
+
+  /* Cards */
+  .card{background:var(--sand-light);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(60,30,0,.09);border:1px solid var(--faint);margin-bottom:14px;cursor:pointer;transition:transform .12s}
+  .card:active{transform:scale(.98)}
+  .card-bar{height:5px}
+  .card-body{padding:14px 16px 12px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.05em}
+  .badge-new{background:var(--terra);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px}
+  .fav-btn{font-size:22px;background:none;border:none;cursor:pointer;padding:0;line-height:1;color:#ddd;transition:color .15s,transform .1s}
+  .fav-btn.saved{color:#e05010}
+  .fav-btn:active{transform:scale(1.3)}
+  .card-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ink);margin-top:10px;line-height:1.3}
+  .card-area{font-size:13px;color:var(--muted);margin:3px 0 8px}
+  .card-desc{font-size:13px;color:#4a3a28;line-height:1.55}
+  .card-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid #ede5d0}
+  .card-price{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:var(--green-mid)}
+  .card-size{font-size:12px;color:#999}
+  .card-meta{text-align:right;font-size:11px;color:#aaa;line-height:1.6}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .card-actions{display:flex;gap:8px;align-items:center}
+
+  /* Overlay / sheet */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;transition:opacity .2s;pointer-events:none}
+  .overlay.open{opacity:1;pointer-events:all}
+  .sheet{background:var(--sand-light);border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;padding:0 0 40px;padding-bottom:calc(40px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1)}
+  .overlay.open .sheet{transform:translateY(0)}
+  .sheet-handle{display:flex;justify-content:center;padding:14px 0 0}
+  .handle-bar{width:40px;height:4px;background:#ddd;border-radius:4px}
+  .sheet-bar{height:5px;margin:12px 0}
+  .sheet-body{padding:0 20px}
+  .sheet-tag-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+  .save-btn{background:var(--sand-mid);border:1.5px solid #ddd;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;color:#777;transition:all .15s}
+  .save-btn.saved{background:#fff0ec;border-color:var(--terra);color:var(--terra)}
+  .sheet-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--ink);margin-bottom:4px;line-height:1.3}
+  .sheet-sub{font-size:14px;color:var(--muted);margin-bottom:16px}
+  .sheet-desc{font-size:15px;color:#3a2a18;line-height:1.65;margin-bottom:20px}
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .stat-box{background:var(--sand-mid);border-radius:10px;padding:12px 14px}
+  .stat-label{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+  .stat-val{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ink)}
+  .call-btn{display:flex;text-decoration:none;background:var(--green-mid);border-radius:14px;padding:16px 20px;margin-bottom:14px;align-items:center;gap:14px}
+  .call-lbl{font-size:10px;color:#a0c880;letter-spacing:.1em;text-transform:uppercase}
+  .call-num{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff}
+  .ext-link{display:block;text-align:center;padding:13px;border:1.5px solid var(--terra);color:var(--terra);border-radius:12px;font-size:14px;font-weight:700;text-decoration:none;margin-bottom:16px;font-family:'Lato',sans-serif}
+  .disclaimer{font-size:11px;color:#bbb;line-height:1.6}
+
+  /* Filters */
+  .filter-section{margin-bottom:22px}
+  .filter-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:block}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--faint);background:var(--sand-light);color:#3a2a18;font-size:13px;cursor:pointer;font-family:'Lato',sans-serif;font-weight:600;transition:all .12s}
+  .chip.sel-terra{background:var(--terra);border-color:var(--terra);color:#fff}
+  .chip.sel-green{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+  .apply-btn{width:100%;padding:15px;background:var(--terra);color:#fff;border:none;border-radius:14px;font-family:'Playfair Display',serif;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px}
+  input[type=range]{width:100%;accent-color:var(--terra)}
+  .range-labels{display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:4px}
+  .range-val{font-size:14px;color:var(--terra);font-weight:700;margin-bottom:8px}
+
+  /* Empty / loading */
+  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
+  .empty-icon{font-size:48px;margin-bottom:12px}
+  .empty-title{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;margin-bottom:8px}
+  .empty-sub{font-size:14px;color:#bbb}
+  .list-head{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);margin-bottom:14px}
+  .list-head em{font-weight:400;color:var(--muted)}
+
+  /* Spinner */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-row">
+      <div>
+        <div id="wordmark">🌴 DR Norte · Propiedades</div>
+        <div id="data-status">Loading listings…</div>
+      </div>
+      <button class="btn-filter" id="filter-btn">Filter ⚙</button>
+    </div>
+    <div id="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="search-input" type="search" placeholder="Area, features, keywords…" autocomplete="off">
+    </div>
+  </div>
+
+  <div id="scroll-area">
+    <div class="list-head" id="list-head" style="display:none"></div>
+    <div id="card-list"></div>
+    <div id="empty-state" class="empty" style="display:none"></div>
+    <div style="height:20px"></div>
+  </div>
+
+  <div id="bottom-nav">
+    <button class="nav-btn active" id="nav-browse" onclick="setTab('browse')">
+      <span class="nav-icon">🏡</span><span class="nav-label">Browse</span>
+    </button>
+    <button class="nav-btn" id="nav-search" onclick="setTab('search')">
+      <span class="nav-icon">🔍</span><span class="nav-label">Search</span>
+    </button>
+    <button class="nav-btn" id="nav-favs" onclick="setTab('favs')">
+      <span class="nav-icon">♥</span><span class="nav-label" id="fav-label">Saved</span>
+    </button>
+  </div>
+</div>
+
+<!-- Detail sheet -->
+<div class="overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-bar" id="d-bar"></div>
+    <div class="sheet-body">
+      <div class="sheet-tag-row">
+        <span class="pill" id="d-pill"></span>
+        <button class="save-btn" id="d-save-btn" onclick="toggleFavDetail()"></button>
+      </div>
+      <div class="sheet-title" id="d-title"></div>
+      <div class="sheet-sub"   id="d-sub"></div>
+      <div class="sheet-desc"  id="d-desc"></div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-label">Price</div><div class="stat-val" id="d-price"></div></div>
+        <div class="stat-box"><div class="stat-label">Size</div><div class="stat-val"  id="d-size"></div></div>
+        <div class="stat-box"><div class="stat-label">Type</div><div class="stat-val"  id="d-type"></div></div>
+        <div class="stat-box"><div class="stat-label">Source</div><div class="stat-val" id="d-source"></div></div>
+      </div>
+      <a class="call-btn" id="d-call" href="#" style="display:none">
+        <span style="font-size:28px">📞</span>
+        <div><div class="call-lbl">Call / WhatsApp</div><div class="call-num" id="d-contact"></div></div>
+      </a>
+      <a class="ext-link" id="d-ext" href="#" target="_blank" rel="noreferrer" style="display:none">View Original Listing ↗</a>
+      <div class="disclaimer">⚠ Always verify Certificado de Título. Use a licensed DR attorney before any transaction.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter drawer -->
+<div class="overlay" id="filter-overlay" onclick="closeFilter(event)">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-body" style="padding-top:20px">
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ink);margin-bottom:20px">Filters</div>
+      <div class="filter-section">
+        <span class="filter-label">Property Type</span>
+        <div class="chip-row" id="type-chips"></div>
+      </div>
+      <div class="filter-section">
+        <span class="filter-label">Area</span>
+        <div class="chip-row" id="area-chips"></div>
+      </div>
+      <div class="filter-section">
+        <span class="filter-label">Sort By</span>
+        <div class="chip-row" id="sort-chips"></div>
+      </div>
+      <div class="filter-section">
+        <span class="filter-label">Max Price</span>
+        <div class="range-val" id="price-display"></div>
+        <input type="range" id="price-range" min="10000" max="500000" step="5000" oninput="onPriceSlide()">
+        <div class="range-labels"><span>$10k</span><span>$500k</span></div>
+      </div>
+      <button class="apply-btn" onclick="applyFilter()">Apply Filters</button>
+      <div style="height:10px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+// This URL is auto-set when you run setup.sh, or you can paste it manually.
+// Format: https://YOUR-USERNAME.github.io/YOUR-REPO-NAME/listings.json
+const LISTINGS_URL = "https://mmelnyk2000-commits.github.io/Qualia-RE/listings.json";
+
+// ── Type config ──────────────────────────────────────────────────────────────
+const TYPE = {
+  land: {label:"Land",  icon:"⬡", bar:"#4a8c1c", pill:"#d4e8c2", pillTxt:"#1a4a00"},
+  farm: {label:"Farm",  icon:"⌘", bar:"#b06010", pill:"#f0dfc8", pillTxt:"#6a2a00"},
+  house:{label:"House", icon:"⌂", bar:"#1a5aaa", pill:"#c8d8f0", pillTxt:"#0a2060"},
+};
+const fmt = n => n ? "$"+Number(n).toLocaleString() : "—";
+
+// ── Seed data (shown while loading or if fetch fails) ────────────────────────
+const SEED = [
+  {id:"s01",title:"Finca en Jarabacoa",area:"Jarabacoa",price:85000,sizeSolar:3.2,sizeUnit:"ha",desc:"River access, flat terrain, mature fruit trees. Ideal for eco-lodge or organic farm.",contact:"809-574-0101",source:"Corotos",url:"",days:4,type:"farm"},
+  {id:"s02",title:"Finca Cafetalera – La Vega",area:"La Vega",price:145000,sizeSolar:8.5,sizeUnit:"ha",desc:"Established coffee and cacao operation. Workers' quarters, processing shed, full title.",contact:"829-574-0204",source:"RE/MAX DR",url:"",days:11,type:"farm"},
+  {id:"s03",title:"Casa de campo – Constanza",area:"Constanza",price:67000,sizeSolar:0.45,sizeUnit:"ha",desc:"3BR/2BA mountain home, cool climate. Views, private garden, paved road access.",contact:"809-574-0312",source:"Corotos",url:"",days:2,type:"house"},
+  {id:"s04",title:"Solar – Moca Centro",area:"Moca",price:28000,sizeSolar:800,sizeUnit:"m²",desc:"Urban lot, commercial zoning, 2 blocks from Parque Central. Ready to build.",contact:"849-574-0411",source:"MercadoLibre",url:"",days:7,type:"land"},
+  {id:"s05",title:"Terreno Costero – Río San Juan",area:"Río San Juan",price:195000,sizeSolar:1.8,sizeUnit:"ha",desc:"Ocean view, gentle slope, 400m from beach. Subdividable, clean title.",contact:"809-574-0522",source:"Century21 DR",url:"",days:19,type:"land"},
+  {id:"s06",title:"Finca Mixta – Santiago Rodríguez",area:"Santiago Rodríguez",price:112000,sizeSolar:12,sizeUnit:"ha",desc:"Avocado, plantain, yuca. Year-round creek. Caretaker house on site.",contact:"829-574-0618",source:"Corotos",url:"",days:3,type:"farm"},
+  {id:"s07",title:"Villa Cabarete Hills",area:"Cabarete",price:240000,sizeSolar:0.3,sizeUnit:"ha",desc:"4BR/3BA, pool, ocean views, Airbnb-ready. Gated community, 5 min to beach.",contact:"809-574-0715",source:"RE/MAX DR",url:"",days:22,type:"house"},
+  {id:"s08",title:"Parcela Agrícola – Salcedo",area:"Salcedo",price:42000,sizeSolar:2.1,sizeUnit:"ha",desc:"Flat irrigated land, prev. rice production. Road frontage, power on site.",contact:"849-574-0801",source:"MercadoLibre",url:"",days:5,type:"land"},
+  {id:"s09",title:"Lote de Montaña – Jarabacoa",area:"Jarabacoa",price:55000,sizeSolar:1.4,sizeUnit:"ha",desc:"Panoramic valley views, pine forest edge, water spring on property. Quiet road.",contact:"809-574-0905",source:"Corotos",url:"",days:1,type:"land"},
+  {id:"s10",title:"Finca Cacao – San Francisco de Macorís",area:"San Francisco de Macorís",price:88000,sizeSolar:5.5,sizeUnit:"ha",desc:"Certified organic cacao, 4yr established. Export history, CONACADO member.",contact:"829-574-1002",source:"Century21 DR",url:"",days:14,type:"farm"},
+  {id:"s11",title:"Casa Colonial – Moca",area:"Moca",price:52000,sizeSolar:600,sizeUnit:"m²",desc:"Renovated 1940s home, tile floors, 3BR, large patio. Rental income history.",contact:"809-574-1112",source:"Corotos",url:"",days:8,type:"house"},
+  {id:"s12",title:"Frente de Playa – Abreu",area:"Abreu",price:320000,sizeSolar:0.9,sizeUnit:"ha",desc:"Direct beachfront, 95m frontage on calm bay. Rare clear title, surveyed.",contact:"849-574-1201",source:"RE/MAX DR",url:"",days:31,type:"land"},
+  {id:"s13",title:"Finca Ganadera – La Vega",area:"La Vega",price:175000,sizeSolar:22,sizeUnit:"ha",desc:"Working cattle farm, corrals, well water, 2 houses. Road accessible year-round.",contact:"809-574-1308",source:"MercadoLibre",url:"",days:6,type:"farm"},
+  {id:"s14",title:"Solar Comercial – Sosúa",area:"Sosúa",price:78000,sizeSolar:1200,sizeUnit:"m²",desc:"Carretera Caribe frontage, commercial zone, utilities at curb. High traffic count.",contact:"829-574-1401",source:"Century21 DR",url:"",days:9,type:"land"},
+  {id:"s15",title:"Casa de Retiro – Constanza",area:"Constanza",price:89000,sizeSolar:0.6,sizeUnit:"ha",desc:"5BR/3BA, greenhouse, fruit orchard, creek boundary. Move-in ready.",contact:"809-574-1507",source:"Corotos",url:"",days:16,type:"house"},
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let listings   = [...SEED];
+let favIds     = [];
+let tab        = "browse";
+let openItem   = null;
+let filters    = {type:"all", area:"All", maxPrice:500000, sort:"days"};
+let pendingF   = {...filters};
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+function saveFavs(){ try{ localStorage.setItem("dr_favs", JSON.stringify(favIds)); }catch{} }
+function loadFavs(){ try{ const v=localStorage.getItem("dr_favs"); if(v) favIds=JSON.parse(v); }catch{} }
+
+// ── Fetch live listings ───────────────────────────────────────────────────────
+async function fetchListings(){
+  const status = document.getElementById("data-status");
+  if (!LISTINGS_URL || LISTINGS_URL === "https://mmelnyk2000-commits.github.io/Qualia-RE/listings.json"){
+    status.textContent = "Sample data · complete GitHub setup to get live listings";
+    render(); return;
+  }
+  try {
+    status.innerHTML = '<span class="spinner"></span>Fetching live listings…';
+    const r = await fetch(LISTINGS_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    if (data.listings?.length){
+      listings = data.listings;
+      const d = new Date(data.updated);
+      const ago = Math.round((Date.now()-d)/60000);
+      status.textContent = `${data.count} live listings · updated ${ago < 60 ? ago+"m ago" : d.toLocaleDateString()}`;
+    } else {
+      status.textContent = "No live data yet · showing samples";
+    }
+  } catch(e){
+    status.textContent = "Offline · showing sample listings";
+  }
+  render();
+}
+
+// ── Filtering & sorting ───────────────────────────────────────────────────────
+function getFiltered(){
+  const base = tab==="favs" ? listings.filter(l=>favIds.includes(l.id)) : listings;
+  const q = (document.getElementById("search-input")?.value||"").toLowerCase();
+  return base.filter(l=>{
+    if (filters.type!=="all" && l.type!==filters.type) return false;
+    if (filters.area!=="All" && l.area!==filters.area) return false;
+    if (l.price && l.price>filters.maxPrice) return false;
+    if (tab==="search" && q) return `${l.title} ${l.area} ${l.desc}`.toLowerCase().includes(q);
+    return true;
+  }).sort((a,b)=>{
+    if (filters.sort==="price") return (a.price||999999)-(b.price||999999);
+    if (filters.sort==="price_desc") return (b.price||0)-(a.price||0);
+    return (a.days||999)-(b.days||999);
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  const data   = getFiltered();
+  const list   = document.getElementById("card-list");
+  const empty  = document.getElementById("empty-state");
+  const head   = document.getElementById("list-head");
+  const favLbl = document.getElementById("fav-label");
+
+  favLbl.textContent = favIds.length ? `Saved (${favIds.length})` : "Saved";
+
+  const afc = (filters.type!=="all"?1:0)+(filters.area!=="All"?1:0)+(filters.maxPrice<500000?1:0);
+  const fbtn = document.getElementById("filter-btn");
+  fbtn.textContent = afc ? `Filters (${afc})` : "Filter ⚙";
+  fbtn.classList.toggle("active", afc>0);
+
+  if (tab==="favs")   head.innerHTML = `♥ Saved <em>(${favIds.length})</em>`;
+  else if (tab==="browse") head.innerHTML = `${data.length} listing${data.length!==1?"s":""}${filters.area!=="All"?` <em>in ${filters.area}</em>`:""}`;
+  else head.innerHTML = "";
+  head.style.display = head.innerHTML ? "block" : "none";
+
+  if (!data.length){
+    list.innerHTML = "";
+    if (tab==="favs" && !favIds.length)
+      empty.innerHTML=`<div class="empty-icon">♡</div><div class="empty-title">No saved listings yet</div><div class="empty-sub">Tap ♡ on any card to save it here</div>`;
+    else if (tab==="search" && !document.getElementById("search-input").value)
+      empty.innerHTML=`<div class="empty-icon">🔍</div><div class="empty-title">Type to search</div><div class="empty-sub">Try "Jarabacoa", "cacao", "beachfront"…</div>`;
+    else
+      empty.innerHTML=`<div class="empty-icon">🌿</div><div class="empty-title">No listings match</div><div class="empty-sub">Try adjusting your filters</div>`;
+    empty.style.display="block"; return;
+  }
+  empty.style.display="none";
+
+  list.innerHTML = data.map(l => {
+    const tc  = TYPE[l.type]||TYPE.land;
+    const fav = favIds.includes(l.id);
+    return `<div class="card" onclick="openDetail('${l.id}')">
+      <div class="card-bar" style="background:${tc.bar}"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="pill" style="background:${tc.pill};color:${tc.pillTxt}">${tc.icon} ${tc.label}</span>
+          <div class="card-actions">
+            ${l.days<=3&&l.days>0?'<span class="badge-new">NEW</span>':""}
+            <button class="fav-btn${fav?" saved":""}" onclick="event.stopPropagation();toggleFav('${l.id}')">${fav?"♥":"♡"}</button>
+          </div>
+        </div>
+        <div class="card-title">${l.title}</div>
+        <div class="card-area">📍 ${l.area}</div>
+        <div class="card-desc">${l.desc||"Tap for details"}</div>
+        <div class="card-footer">
+          <div>
+            <div class="card-price">${fmt(l.price)}</div>
+            <div class="card-size">${l.sizeSolar?l.sizeSolar+" "+l.sizeUnit:""}</div>
+          </div>
+          <div class="card-meta">${l.source}${l.days?`<br>${l.days}d ago`:""}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function setTab(t){
+  tab = t;
+  ["browse","search","favs"].forEach(id =>
+    document.getElementById("nav-"+id).classList.toggle("active", id===t));
+  const sw = document.getElementById("search-wrap");
+  const fb = document.getElementById("filter-btn");
+  if (t==="search"){
+    sw.style.display="block";
+    fb.textContent="Refresh 🔄"; fb.onclick=fetchListings; fb.classList.remove("active");
+    document.getElementById("search-input").focus();
+  } else {
+    sw.style.display="none";
+    fb.onclick=openFilter;
+  }
+  render();
+}
+
+// ── Favorites ─────────────────────────────────────────────────────────────────
+function toggleFav(id){
+  favIds = favIds.includes(id) ? favIds.filter(x=>x!==id) : [...favIds,id];
+  saveFavs(); render();
+  if (openItem?.id===id) updateSaveBtn();
+}
+function toggleFavDetail(){ toggleFav(openItem.id); }
+function updateSaveBtn(){
+  const fav = favIds.includes(openItem?.id);
+  const btn = document.getElementById("d-save-btn");
+  btn.textContent = fav ? "♥ Saved" : "♡ Save";
+  btn.classList.toggle("saved", fav);
+}
+
+// ── Detail sheet ──────────────────────────────────────────────────────────────
+function openDetail(id){
+  const l = listings.find(x=>x.id===id); if(!l) return;
+  openItem = l;
+  const tc = TYPE[l.type]||TYPE.land;
+  document.getElementById("d-bar").style.background    = tc.bar;
+  document.getElementById("d-pill").textContent        = tc.icon+" "+tc.label;
+  document.getElementById("d-pill").style.cssText     += `;background:${tc.pill};color:${tc.pillTxt}`;
+  document.getElementById("d-title").textContent       = l.title;
+  document.getElementById("d-sub").textContent         = `📍 ${l.area} · ${l.source}${l.days?" · "+l.days+"d ago":""}`;
+  document.getElementById("d-desc").textContent        = l.desc||"";
+  document.getElementById("d-price").textContent       = fmt(l.price);
+  document.getElementById("d-size").textContent        = l.sizeSolar ? l.sizeSolar+" "+l.sizeUnit : "—";
+  document.getElementById("d-type").textContent        = tc.label;
+  document.getElementById("d-source").textContent      = l.source;
+  const callBtn = document.getElementById("d-call");
+  if(l.contact){ callBtn.href="tel:"+l.contact.replace(/[^+\d]/g,""); document.getElementById("d-contact").textContent=l.contact; callBtn.style.display="flex"; }
+  else callBtn.style.display="none";
+  const ext = document.getElementById("d-ext");
+  if(l.url){ ext.href=l.url; ext.style.display="block"; } else ext.style.display="none";
+  updateSaveBtn();
+  document.getElementById("detail-overlay").classList.add("open");
+}
+function closeDetail(e){ if(e&&e.target!==document.getElementById("detail-overlay")) return; document.getElementById("detail-overlay").classList.remove("open"); openItem=null; }
+
+// ── Filter drawer ─────────────────────────────────────────────────────────────
+function openFilter(){
+  pendingF = {...filters};
+  buildChips();
+  document.getElementById("price-range").value = filters.maxPrice;
+  onPriceSlide();
+  document.getElementById("filter-overlay").classList.add("open");
+}
+function closeFilter(e){ if(e&&e.target!==document.getElementById("filter-overlay")) return; document.getElementById("filter-overlay").classList.remove("open"); }
+function applyFilter(){ filters={...pendingF, maxPrice:+document.getElementById("price-range").value}; closeFilter(null); render(); }
+function onPriceSlide(){ const v=+document.getElementById("price-range").value; document.getElementById("price-display").textContent=fmt(v); pendingF.maxPrice=v; }
+
+function buildChips(){
+  const types=[{id:"all",l:"All Types"},{id:"land",l:"Land"},{id:"farm",l:"Farm"},{id:"house",l:"House"}];
+  document.getElementById("type-chips").innerHTML=types.map(t=>`<button class="chip${pendingF.type===t.id?" sel-terra":""}" onclick="pick('type','${t.id}',this,'sel-terra')">${t.l}</button>`).join("");
+  const areas=["All",...[...new Set(listings.map(l=>l.area))].sort()];
+  document.getElementById("area-chips").innerHTML=areas.map(a=>`<button class="chip${pendingF.area===a?" sel-green":""}" onclick="pick('area','${a}',this,'sel-green')">${a}</button>`).join("");
+  const sorts=[{id:"days",l:"Newest"},{id:"price",l:"Price ↑"},{id:"price_desc",l:"Price ↓"}];
+  document.getElementById("sort-chips").innerHTML=sorts.map(s=>`<button class="chip${pendingF.sort===s.id?" sel-terra":""}" onclick="pick('sort','${s.id}',this,'sel-terra')">${s.l}</button>`).join("");
+}
+function pick(key,val,el,cls){
+  pendingF[key]=val;
+  el.closest(".chip-row").querySelectorAll(".chip").forEach(c=>c.classList.remove(cls));
+  el.classList.add(cls);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById("filter-btn").onclick = openFilter;
+document.getElementById("search-input").addEventListener("input", render);
+loadFavs();
+fetchListings();
+</script>
+</body>
+</html>

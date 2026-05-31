@@ -1,0 +1,39 @@
+name: Scrape DR Listings
+
+on:
+  schedule:
+    # Runs every day at 7:00 AM Dominican Republic time (UTC-4 = 11:00 UTC)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    # Also lets you trigger it manually from GitHub with one click
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit listings.json back to the repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 lxml
+
+      - name: Run scraper
+        run: python scraper.py
+        # If scraping is blocked, it falls back to seed data automatically
+
+      - name: Commit updated listings.json
+        run: |
+          git config user.name  "DR Realty Bot"
+          git config user.email "bot@dr-realty.local"
+          git add docs/listings.json
+          # Only commit if something actually changed
+          git diff --staged --quiet || git commit -m "🌴 Update listings $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
