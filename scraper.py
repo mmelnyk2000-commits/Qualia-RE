@@ -1,27 +1,21 @@
 #!/usr/bin/env python3
 """
-DR Norte Real Estate Scraper - Correct Corotos URLs
+DR Norte Real Estate Scraper - Playwright (real browser)
+Handles JavaScript-rendered sites like Corotos and MercadoLibre
 """
 
-import json, time, re, hashlib
+import json, re, hashlib, asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
 try:
-    import requests
-    from bs4 import BeautifulSoup
+    from playwright.async_api import async_playwright
 except ImportError:
-    print("Run: pip install requests beautifulsoup4 lxml")
+    print("Run: pip install playwright && playwright install chromium")
     raise
 
 OUT_FILE = Path(__file__).parent / "docs" / "listings.json"
 OUT_FILE.parent.mkdir(exist_ok=True)
-
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept-Language": "es-DO,es;q=0.9,en;q=0.8",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-}
 
 def clean_price(raw):
     raw = re.sub(r"[^\d]", "", raw or "")
@@ -34,7 +28,7 @@ def clean_size(raw):
     if m := re.search(r"([\d.]+)\s*(hectare|hectárea|ha\b)", raw):
         return float(m.group(1)), "ha"
     if m := re.search(r"([\d,.]+)\s*(m²|m2|metros?)", raw):
-        return float(m.group(1).replace(",",".")), "m²"
+        return float(re.sub(r"[^\d.]","",m.group(1))), "m²"
     if m := re.search(r"([\d.]+)\s*(tarea)", raw):
         return round(float(m.group(1)) * 628.86 / 10000, 3), "ha"
     return None, ""
@@ -57,171 +51,143 @@ TARGET_AREAS = [
 ]
 
 def in_region(text):
-    t = text.lower()
-    return any(a in t for a in TARGET_AREAS)
+    return any(a in text.lower() for a in TARGET_AREAS)
 
-# ── Corotos - correct URL structure ──────────────────────────────
-COROTOS_QUERIES = [
-    # Category pages - solares y terrenos by area
+# ── Corotos pages (already region-filtered by URL) ────────────────
+COROTOS_URLS = [
     "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/solares-terrenos",
-    "https://www.corotos.com.do/sl/la-vega/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/fincas",
+    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/casas",
+    "https://www.corotos.com.do/sl/la-vega/constanza/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/la-vega/constanza/sc/inmuebles-en-venta/casas",
     "https://www.corotos.com.do/sl/espaillat/moca/sc/inmuebles-en-venta/solares-terrenos",
-    "https://www.corotos.com.do/sl/puerto-plata/sc/inmuebles-en-venta/solares-terrenos",
     "https://www.corotos.com.do/sl/puerto-plata/sosua/sc/inmuebles-en-venta/solares-terrenos",
     "https://www.corotos.com.do/sl/puerto-plata/cabarete/sc/inmuebles-en-venta/solares-terrenos",
-    # Fincas
-    "https://www.corotos.com.do/sl/la-vega/sc/inmuebles-en-venta/fincas",
-    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/fincas",
-    # Casas
-    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/casas",
-    "https://www.corotos.com.do/sl/la-vega/constanza/sc/inmuebles-en-venta/casas",
-    # Search pages
     "https://www.corotos.com.do/sc/inmuebles-en-venta/solares-terrenos/jarabacoa",
     "https://www.corotos.com.do/sc/inmuebles-en-venta/fincas/la-vega",
 ]
 
-def scrape_corotos(session):
-    results = []
-    for url in COROTOS_QUERIES:
-        try:
-            r = session.get(url, timeout=20)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, "lxml")
-
-            # Corotos uses article tags or divs for listings
-            cards = (
-                soup.select("article.ad-card") or
-                soup.select("div.ad-card") or
-                soup.select("article[class*='ad']") or
-                soup.select("div[class*='ad-item']") or
-                soup.select("li[class*='ad']") or
-                soup.select("div[class*='listing-item']") or
-                soup.select("a[class*='listing']")
-            )
-
-            print(f"  Corotos {url[-45:]}: {len(cards)} cards")
-
-            for card in cards[:20]:
-                try:
-                    title_el = card.select_one("h2,h3,[class*='title'],[class*='name'],[class*='heading']")
-                    price_el = card.select_one("[class*='price']")
-                    link_el  = card.select_one("a[href]")
-                    loc_el   = card.select_one("[class*='location'],[class*='city'],[class*='place'],[class*='zona'],[class*='address']")
-                    desc_el  = card.select_one("[class*='desc'],[class*='detail'],[class*='body'],[class*='text']")
-
-                    title = (title_el.get_text(strip=True) if title_el else "").strip()
-                    href  = link_el.get("href","") if link_el else ""
-                    if not title or not href:
-                        continue
-
-                    full_url = href if href.startswith("http") else "https://www.corotos.com.do" + href
-                    loc      = loc_el.get_text(strip=True) if loc_el else ""
-                    desc     = desc_el.get_text(strip=True) if desc_el else ""
-                    price_raw= price_el.get_text(strip=True) if price_el else ""
-                    combined = f"{title} {loc} {desc}"
-
-                    # Extract area from URL since location text may be missing
-                    area_from_url = ""
-                    for a in TARGET_AREAS:
-                        if a in url.lower():
-                            area_from_url = a.title()
-                            break
-
-                    price    = clean_price(price_raw)
-                    sz, unit = clean_size(combined)
-
-                    results.append({
-                        "id":        make_id(full_url),
-                        "title":     title,
-                        "area":      loc or area_from_url or "Norte / Cibao",
-                        "price":     price,
-                        "sizeSolar": sz,
-                        "sizeUnit":  unit or "m²",
-                        "desc":      desc[:200] if desc else "",
-                        "contact":   "",
-                        "source":    "Corotos",
-                        "url":       full_url,
-                        "days":      0,
-                        "type":      guess_type(combined),
-                        "scraped":   datetime.now(timezone.utc).isoformat(),
-                    })
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"  Corotos error [{url[-40:]}]: {e}")
-        time.sleep(2)
-    return results
-
-# ── MercadoLibre DR ───────────────────────────────────────────────
-MLDR_QUERIES = [
+MLDR_URLS = [
     "https://inmuebles.mercadolibre.com.do/terrenos-y-lotes/jarabacoa/",
     "https://inmuebles.mercadolibre.com.do/terrenos-y-lotes/la-vega/",
     "https://inmuebles.mercadolibre.com.do/fincas/",
     "https://inmuebles.mercadolibre.com.do/casas/jarabacoa/",
     "https://inmuebles.mercadolibre.com.do/terrenos-y-lotes/sosua/",
-    "https://listado.mercadolibre.com.do/inmuebles/terrenos/jarabacoa",
 ]
 
-def scrape_mercadolibre(session):
+async def scrape_corotos(page, url):
     results = []
-    for url in MLDR_QUERIES:
-        try:
-            r = session.get(url, timeout=20)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, "lxml")
+    try:
+        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        # Wait for listing cards to appear
+        await page.wait_for_selector("article, [class*='ad-card'], [class*='listing'], [class*='result']", timeout=10000)
+        await asyncio.sleep(2)  # Let JS finish rendering
 
-            items = (
-                soup.select("li.ui-search-layout__item") or
-                soup.select("div.ui-search-result__wrapper") or
-                soup.select("[class*='results-item']")
-            )
+        cards = await page.query_selector_all("article, div[class*='ad-card'], div[class*='listing-item']")
+        print(f"  Corotos {url[-45:]}: {len(cards)} cards")
 
-            print(f"  ML {url[-40:]}: {len(items)} items")
+        # Extract area from URL
+        area_from_url = "Norte / Cibao"
+        for a in TARGET_AREAS:
+            if a.replace(" ","-") in url.lower() or a in url.lower():
+                area_from_url = a.title()
+                break
 
-            for item in items[:20]:
-                try:
-                    title_el = item.select_one("h2,.ui-search-item__title,[class*='title']")
-                    price_el = item.select_one(".price-tag-fraction,[class*='price']")
-                    link_el  = item.select_one("a[href]")
-                    loc_el   = item.select_one(".ui-search-item__location,[class*='location']")
-                    attr_el  = item.select_one(".ui-search-card-attributes,[class*='attributes']")
-
-                    title = title_el.get_text(strip=True) if title_el else ""
-                    href  = link_el.get("href","") if link_el else ""
-                    if not title or not href:
-                        continue
-
-                    loc   = loc_el.get_text(strip=True) if loc_el else ""
-                    attrs = attr_el.get_text(" ",strip=True) if attr_el else ""
-                    price = clean_price(price_el.get_text(strip=True) if price_el else "")
-                    combined = f"{title} {loc} {attrs}"
-                    if not in_region(combined):
-                        continue
-
-                    sz, unit = clean_size(combined)
-                    results.append({
-                        "id":        make_id(href),
-                        "title":     title,
-                        "area":      loc or "Norte / Cibao",
-                        "price":     price,
-                        "sizeSolar": sz,
-                        "sizeUnit":  unit or "m²",
-                        "desc":      attrs,
-                        "contact":   "",
-                        "source":    "MercadoLibre",
-                        "url":       href,
-                        "days":      0,
-                        "type":      guess_type(combined),
-                        "scraped":   datetime.now(timezone.utc).isoformat(),
-                    })
-                except Exception:
+        for card in cards[:20]:
+            try:
+                title = await card.eval_on_selector("h2,h3,[class*='title']", "el => el.textContent.trim()") if await card.query_selector("h2,h3,[class*='title']") else ""
+                href_el = await card.query_selector("a[href]")
+                href = await href_el.get_attribute("href") if href_el else ""
+                if not title or not href:
                     continue
-        except Exception as e:
-            print(f"  ML error [{url[-40:]}]: {e}")
-        time.sleep(2)
+
+                full_url = href if href.startswith("http") else "https://www.corotos.com.do" + href
+                price_el = await card.query_selector("[class*='price']")
+                price_raw = await price_el.text_content() if price_el else ""
+                loc_el = await card.query_selector("[class*='location'],[class*='city'],[class*='zona']")
+                loc = await loc_el.text_content() if loc_el else ""
+                desc_el = await card.query_selector("[class*='desc'],[class*='detail'],[class*='body']")
+                desc = await desc_el.text_content() if desc_el else ""
+
+                price = clean_price(price_raw)
+                combined = f"{title} {loc} {desc}"
+                sz, unit = clean_size(combined)
+
+                results.append({
+                    "id":        make_id(full_url),
+                    "title":     title.strip(),
+                    "area":      loc.strip() or area_from_url,
+                    "price":     price,
+                    "sizeSolar": sz,
+                    "sizeUnit":  unit or "m²",
+                    "desc":      desc.strip()[:200],
+                    "contact":   "",
+                    "source":    "Corotos",
+                    "url":       full_url,
+                    "days":      0,
+                    "type":      guess_type(combined),
+                    "scraped":   datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"  Corotos error [{url[-40:]}]: {e}")
     return results
 
-# ── Seed fallback ─────────────────────────────────────────────────
+async def scrape_mercadolibre(page, url):
+    results = []
+    try:
+        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        await page.wait_for_selector("li.ui-search-layout__item, [class*='result']", timeout=10000)
+        await asyncio.sleep(2)
+
+        items = await page.query_selector_all("li.ui-search-layout__item")
+        print(f"  ML {url[-40:]}: {len(items)} items")
+
+        for item in items[:20]:
+            try:
+                title_el = await item.query_selector("h2,[class*='title']")
+                title = await title_el.text_content() if title_el else ""
+                link_el = await item.query_selector("a[href]")
+                href = await link_el.get_attribute("href") if link_el else ""
+                if not title or not href:
+                    continue
+
+                price_el = await item.query_selector(".price-tag-fraction,[class*='price']")
+                price_raw = await price_el.text_content() if price_el else ""
+                loc_el = await item.query_selector("[class*='location']")
+                loc = await loc_el.text_content() if loc_el else ""
+                attr_el = await item.query_selector("[class*='attributes']")
+                attrs = await attr_el.text_content() if attr_el else ""
+
+                combined = f"{title} {loc} {attrs}"
+                if not in_region(combined):
+                    continue
+
+                price = clean_price(price_raw)
+                sz, unit = clean_size(combined)
+
+                results.append({
+                    "id":        make_id(href),
+                    "title":     title.strip(),
+                    "area":      loc.strip() or "Norte / Cibao",
+                    "price":     price,
+                    "sizeSolar": sz,
+                    "sizeUnit":  unit or "m²",
+                    "desc":      attrs.strip(),
+                    "contact":   "",
+                    "source":    "MercadoLibre",
+                    "url":       href,
+                    "days":      0,
+                    "type":      guess_type(combined),
+                    "scraped":   datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"  ML error [{url[-40:]}]: {e}")
+    return results
+
 SEED = [
     {"id":"s01","title":"Finca en Jarabacoa","area":"Jarabacoa","price":85000,"sizeSolar":3.2,"sizeUnit":"ha","desc":"River access, flat terrain, mature fruit trees. Ideal for eco-lodge or organic farm.","contact":"809-574-0101","source":"Corotos","url":"","days":4,"type":"farm","scraped":""},
     {"id":"s02","title":"Finca Cafetalera – La Vega","area":"La Vega","price":145000,"sizeSolar":8.5,"sizeUnit":"ha","desc":"Established coffee and cacao operation. Workers' quarters, processing shed, full title.","contact":"829-574-0204","source":"RE/MAX DR","url":"","days":11,"type":"farm","scraped":""},
@@ -235,38 +201,59 @@ SEED = [
     {"id":"s10","title":"Frente de Playa – Abreu","area":"Abreu","price":320000,"sizeSolar":0.9,"sizeUnit":"ha","desc":"Direct beachfront, 95m frontage on calm bay. Rare clear title, surveyed.","contact":"849-574-1201","source":"RE/MAX DR","url":"","days":31,"type":"land","scraped":""},
 ]
 
-def main():
-    session = requests.Session()
-    session.headers.update(HEADERS)
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"]
+        )
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            locale="es-DO",
+            viewport={"width":1280,"height":800}
+        )
+        page = await context.new_page()
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Scraping Corotos…")
-    corotos = scrape_corotos(session)
-    print(f"  → {len(corotos)} listings")
+        all_results = []
 
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Scraping MercadoLibre DR…")
-    mldr = scrape_mercadolibre(session)
-    print(f"  → {len(mldr)} listings")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Scraping Corotos…")
+        for url in COROTOS_URLS:
+            results = await scrape_corotos(page, url)
+            all_results.extend(results)
+            await asyncio.sleep(2)
+        print(f"  → {len(all_results)} listings so far")
 
-    live = corotos + mldr
-    seen, unique = set(), []
-    for l in live:
-        if l["id"] not in seen:
-            seen.add(l["id"])
-            unique.append(l)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Scraping MercadoLibre DR…")
+        ml_results = []
+        for url in MLDR_URLS:
+            results = await scrape_mercadolibre(page, url)
+            ml_results.extend(results)
+            await asyncio.sleep(2)
+        all_results.extend(ml_results)
+        print(f"  → {len(ml_results)} ML listings")
 
-    if len(unique) < 3:
-        print(f"  Only {len(unique)} live results — padding with seed data")
-        existing_ids = {l["id"] for l in unique}
-        unique += [s for s in SEED if s["id"] not in existing_ids]
+        await browser.close()
 
-    payload = {
-        "updated":  datetime.now(timezone.utc).isoformat(),
-        "count":    len(unique),
-        "source":   "GitHub Actions scrape",
-        "listings": unique,
-    }
-    OUT_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
-    print(f"  ✓ Wrote {len(unique)} listings → {OUT_FILE}")
+        # Deduplicate
+        seen, unique = set(), []
+        for l in all_results:
+            if l["id"] not in seen:
+                seen.add(l["id"])
+                unique.append(l)
+
+        if len(unique) < 3:
+            print(f"  Only {len(unique)} live — padding with seed data")
+            existing = {l["id"] for l in unique}
+            unique += [s for s in SEED if s["id"] not in existing]
+
+        payload = {
+            "updated":  datetime.now(timezone.utc).isoformat(),
+            "count":    len(unique),
+            "source":   "GitHub Actions / Playwright",
+            "listings": unique,
+        }
+        OUT_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+        print(f"  ✓ Wrote {len(unique)} listings → {OUT_FILE}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
