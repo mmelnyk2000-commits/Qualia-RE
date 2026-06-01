@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DR Norte Real Estate Scraper - Fixed URLs
+DR Norte Real Estate Scraper - Correct Corotos URLs
 """
 
 import json, time, re, hashlib
@@ -33,15 +33,15 @@ def clean_size(raw):
     raw = (raw or "").lower().replace(",", ".")
     if m := re.search(r"([\d.]+)\s*(hectare|hectárea|ha\b)", raw):
         return float(m.group(1)), "ha"
-    if m := re.search(r"([\d.]+)\s*(m²|m2|metros?)", raw):
-        return float(m.group(1)), "m²"
+    if m := re.search(r"([\d,.]+)\s*(m²|m2|metros?)", raw):
+        return float(m.group(1).replace(",",".")), "m²"
     if m := re.search(r"([\d.]+)\s*(tarea)", raw):
         return round(float(m.group(1)) * 628.86 / 10000, 3), "ha"
     return None, ""
 
 def guess_type(text):
     t = text.lower()
-    if any(w in t for w in ["finca","cacao","café","ganader","agrícol","cultiv","siembra"]):
+    if any(w in t for w in ["finca","cacao","café","ganader","agrícol","cultiv","siembra","invernadero"]):
         return "farm"
     if any(w in t for w in ["casa","villa","apart","residen","vivienda","chalet"]):
         return "house"
@@ -60,18 +60,24 @@ def in_region(text):
     t = text.lower()
     return any(a in t for a in TARGET_AREAS)
 
-# ── Corotos - fixed URLs ──────────────────────────────────────────
+# ── Corotos - correct URL structure ──────────────────────────────
 COROTOS_QUERIES = [
-    "https://www.corotos.com.do/s?q=terreno+jarabacoa",
-    "https://www.corotos.com.do/s?q=finca+la+vega",
-    "https://www.corotos.com.do/s?q=solar+moca",
-    "https://www.corotos.com.do/s?q=terreno+constanza",
-    "https://www.corotos.com.do/s?q=casa+jarabacoa",
-    "https://www.corotos.com.do/s?q=finca+cibao",
-    "https://www.corotos.com.do/s?q=terreno+sosua",
-    "https://www.corotos.com.do/s?q=terreno+cabarete",
-    "https://www.corotos.com.do/s?q=finca+san+francisco",
-    "https://www.corotos.com.do/s?q=terreno+puerto+plata",
+    # Category pages - solares y terrenos by area
+    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/la-vega/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/espaillat/moca/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/puerto-plata/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/puerto-plata/sosua/sc/inmuebles-en-venta/solares-terrenos",
+    "https://www.corotos.com.do/sl/puerto-plata/cabarete/sc/inmuebles-en-venta/solares-terrenos",
+    # Fincas
+    "https://www.corotos.com.do/sl/la-vega/sc/inmuebles-en-venta/fincas",
+    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/fincas",
+    # Casas
+    "https://www.corotos.com.do/sl/la-vega/jarabacoa/sc/inmuebles-en-venta/casas",
+    "https://www.corotos.com.do/sl/la-vega/constanza/sc/inmuebles-en-venta/casas",
+    # Search pages
+    "https://www.corotos.com.do/sc/inmuebles-en-venta/solares-terrenos/jarabacoa",
+    "https://www.corotos.com.do/sc/inmuebles-en-venta/fincas/la-vega",
 ]
 
 def scrape_corotos(session):
@@ -82,24 +88,26 @@ def scrape_corotos(session):
             r.raise_for_status()
             soup = BeautifulSoup(r.text, "lxml")
 
+            # Corotos uses article tags or divs for listings
             cards = (
-                soup.select("div.ad-item") or
-                soup.select("article[class*='product']") or
-                soup.select("div[class*='listing']") or
-                soup.select("div[class*='card']") or
+                soup.select("article.ad-card") or
+                soup.select("div.ad-card") or
+                soup.select("article[class*='ad']") or
+                soup.select("div[class*='ad-item']") or
                 soup.select("li[class*='ad']") or
-                soup.select("a[class*='item']")
+                soup.select("div[class*='listing-item']") or
+                soup.select("a[class*='listing']")
             )
 
-            print(f"  Corotos {url[-30:]}: {len(cards)} cards found")
+            print(f"  Corotos {url[-45:]}: {len(cards)} cards")
 
-            for card in cards[:25]:
+            for card in cards[:20]:
                 try:
-                    title_el = card.select_one("h2,h3,[class*='title'],[class*='name']")
+                    title_el = card.select_one("h2,h3,[class*='title'],[class*='name'],[class*='heading']")
                     price_el = card.select_one("[class*='price']")
                     link_el  = card.select_one("a[href]")
-                    loc_el   = card.select_one("[class*='location'],[class*='city'],[class*='place'],[class*='zona']")
-                    desc_el  = card.select_one("[class*='desc'],[class*='detail'],[class*='body']")
+                    loc_el   = card.select_one("[class*='location'],[class*='city'],[class*='place'],[class*='zona'],[class*='address']")
+                    desc_el  = card.select_one("[class*='desc'],[class*='detail'],[class*='body'],[class*='text']")
 
                     title = (title_el.get_text(strip=True) if title_el else "").strip()
                     href  = link_el.get("href","") if link_el else ""
@@ -112,9 +120,6 @@ def scrape_corotos(session):
                     price_raw= price_el.get_text(strip=True) if price_el else ""
                     combined = f"{title} {loc} {desc}"
 
-                    if not in_region(combined):
-                        continue
-
                     price    = clean_price(price_raw)
                     sz, unit = clean_size(combined)
 
@@ -125,7 +130,7 @@ def scrape_corotos(session):
                         "price":     price,
                         "sizeSolar": sz,
                         "sizeUnit":  unit or "m²",
-                        "desc":      desc,
+                        "desc":      desc[:200] if desc else "",
                         "contact":   "",
                         "source":    "Corotos",
                         "url":       full_url,
@@ -136,7 +141,7 @@ def scrape_corotos(session):
                 except Exception:
                     continue
         except Exception as e:
-            print(f"  Corotos error [{url[-30:]}]: {e}")
+            print(f"  Corotos error [{url[-40:]}]: {e}")
         time.sleep(2)
     return results
 
@@ -147,7 +152,7 @@ MLDR_QUERIES = [
     "https://inmuebles.mercadolibre.com.do/fincas/",
     "https://inmuebles.mercadolibre.com.do/casas/jarabacoa/",
     "https://inmuebles.mercadolibre.com.do/terrenos-y-lotes/sosua/",
-    "https://listado.mercadolibre.com.do/inmuebles/terrenos/",
+    "https://listado.mercadolibre.com.do/inmuebles/terrenos/jarabacoa",
 ]
 
 def scrape_mercadolibre(session):
@@ -161,11 +166,10 @@ def scrape_mercadolibre(session):
             items = (
                 soup.select("li.ui-search-layout__item") or
                 soup.select("div.ui-search-result__wrapper") or
-                soup.select("[class*='results-item']") or
-                soup.select("[class*='result']")
+                soup.select("[class*='results-item']")
             )
 
-            print(f"  MercadoLibre {url[-35:]}: {len(items)} items found")
+            print(f"  ML {url[-40:]}: {len(items)} items")
 
             for item in items[:20]:
                 try:
@@ -206,7 +210,7 @@ def scrape_mercadolibre(session):
                 except Exception:
                     continue
         except Exception as e:
-            print(f"  MercadoLibre error [{url[-35:]}]: {e}")
+            print(f"  ML error [{url[-40:]}]: {e}")
         time.sleep(2)
     return results
 
