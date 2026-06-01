@@ -120,13 +120,20 @@ def scrape_corotos(session):
                     price_raw= price_el.get_text(strip=True) if price_el else ""
                     combined = f"{title} {loc} {desc}"
 
+                    # Extract area from URL since location text may be missing
+                    area_from_url = ""
+                    for a in TARGET_AREAS:
+                        if a in url.lower():
+                            area_from_url = a.title()
+                            break
+
                     price    = clean_price(price_raw)
                     sz, unit = clean_size(combined)
 
                     results.append({
                         "id":        make_id(full_url),
                         "title":     title,
-                        "area":      loc or "Norte / Cibao",
+                        "area":      loc or area_from_url or "Norte / Cibao",
                         "price":     price,
                         "sizeSolar": sz,
                         "sizeUnit":  unit or "m²",
