@@ -13,6 +13,6 @@ Shortlist page: https://claude.ai/artifact/9jaZ98Mnsz8mPJk8EviP7V (database coll
    - existing id with a different price: `update` price and all computed fields (pin `if_version`), add a note "Price changed from $X";
    - existing id, same price: skip. Never overwrite `status: "dismissed"`.
 6. **Record the run.** Update `meta/triage` with the processed message ids (keep the latest 300) and `lastRun` (ISO time).
-7. **Report.** If nothing new arrived, end the turn silently. Otherwise reply in one short paragraph: how many listings, which made the shortlist (address, neighborhood, price, cash flow/mo, top red flag), and which were rejected.
+7. **Report.** If nothing new arrived, end the turn silently. Otherwise reply in one short paragraph: how many listings, each one's tier and score (address, neighborhood, price, cash flow/mo, top red flag), unicorns first.
 
 Limits to state honestly: photos are not reviewed; taxes marked UNVERIFIED are estimates until the real bill is pulled; neighborhood is inferred from the address.

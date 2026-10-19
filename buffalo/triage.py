@@ -62,6 +62,11 @@ UNDERWRITING = dict(
     term=30, closing_pct=4, rehab=0,
 )
 
+# Score: monthly cash flow after everything, in points. $500/mo = 100.
+# A strong duplex lands near 100; 3+ unit "unicorns" can break above it.
+DOLLARS_PER_POINT = 5
+PASS_MIN = 40  # $200/mo total, about $100 per door
+
 # Red flags in listing text: (pattern, severity, what it usually means)
 RED_FLAGS = [
     (r"\bas[- ]is\b", "high", "Sold as-is: seller won't repair; expect hidden defects"),
@@ -156,14 +161,18 @@ def triage(listing):
     flags = scan(" ".join(str(listing.get(k) or "") for k in ("description", "remarks", "title")))
 
     cash_mo = r["cash_flow"] / 12
-    if cash_mo <= 0:
-        verdict = "red"
-    elif r["tax_to_rent"] > 0.20 or any(f["severity"] == "high" for f in flags):
-        verdict = "watch"
-    elif r["dscr"] < 1.2 or r["coc"] < 0.08 or r["tax_to_rent"] > 0.15:
-        verdict = "watch"
+    score = round(cash_mo / DOLLARS_PER_POINT)
+    if score <= 0:
+        tier = "fail"
+    elif score > 100:
+        tier = "unicorn"
+    elif score >= PASS_MIN:
+        tier = "pass"
     else:
-        verdict = "pass"
+        tier = "watch"
+    if tier in ("pass", "unicorn") and any(f["severity"] == "high" for f in flags):
+        tier = "watch"
+        notes.append("Capped at Watch: high-severity red flag in the listing text.")
 
     return {
         "id": slug(listing["address"]),
@@ -174,7 +183,7 @@ def triage(listing):
         "cashFlowMo": round(cash_mo), "coc": round(r["coc"] * 100, 1), "dscr": round(r["dscr"], 2),
         "capRate": round(r["cap_rate"] * 100, 2), "taxToRent": round(r["tax_to_rent"] * 100, 1),
         "maxOffer": mo, "priceVsMax": round(price - mo) if mo else None,
-        "verdict": verdict, "status": "shortlist" if cash_mo > 0 else "rejected",
+        "score": score, "tier": tier, "status": "rejected" if tier == "fail" else "shortlist",
         "redFlags": flags, "notes": notes,
         "url": listing.get("url", ""), "source": listing.get("source", ""), "alertDate": listing.get("alert_date", ""),
         "photosReviewed": False,

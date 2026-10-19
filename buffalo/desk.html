@@ -17,6 +17,7 @@
   --warn: #9a6a00;
   --good-bg: #e2f1e8; --warn-bg: #fbf0d4; --bad-bg: #f6e1dc;
   --chip: #e4ebf1;
+  --uni: #a3197a; --uni-bg: #f7e1f0;  /* unicorn: breaks 100 */
   --city: #d6e6f2;       /* City of Buffalo: one citywide rate */
   --sub: #e9e6df;        /* suburbs: each town/village/school sets its own */
   --water: #c9dbe8;
@@ -28,11 +29,11 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0f151b; --panel: #172029; --ink: #e5ebf0; --muted: #94a3b2; --rule: #2a3642;
   --accent: #6fb2e0; --accent-ink: #0b1218; --brick: #e78b78; --good: #7fd1a3; --warn: #e8c062;
-  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; --city: #1d3446; --sub: #2a2925; --water: #12232f; color-scheme: dark } }
+  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; --uni: #f08acb; --uni-bg: #3a1830; --city: #1d3446; --sub: #2a2925; --water: #12232f; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0f151b; --panel: #172029; --ink: #e5ebf0; --muted: #94a3b2; --rule: #2a3642;
   --accent: #6fb2e0; --accent-ink: #0b1218; --brick: #e78b78; --good: #7fd1a3; --warn: #e8c062;
-  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; --city: #1d3446; --sub: #2a2925; --water: #12232f; color-scheme: dark }
+  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; --uni: #f08acb; --uni-bg: #3a1830; --city: #1d3446; --sub: #2a2925; --water: #12232f; color-scheme: dark }
 
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
@@ -119,7 +120,7 @@ tr.total td { font-weight: 600; border-bottom: 0; }
 a { color: var(--accent); }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
 .card { border: 1px solid var(--rule); border-radius: 8px; padding: 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
-.card.pass { border-top: 4px solid var(--good); } .card.watch { border-top: 4px solid var(--warn); } .card.red { border-top: 4px solid var(--brick); }
+.card.unicorn { border-top: 4px solid var(--uni); } .card.pass { border-top: 4px solid var(--good); } .card.watch { border-top: 4px solid var(--warn); } .card.fail { border-top: 4px solid var(--brick); }
 .card h3 { font-family: var(--f-display); font-size: 17px; margin: 0; overflow-wrap: anywhere; }
 .card .meta { color: var(--muted); font-size: 13px; }
 .card .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -131,7 +132,11 @@ a { color: var(--accent); }
 .card .src { font-size: 12px; color: var(--muted); }
 .card .btns button { font-size: 13px; padding: 5px 10px; }
 .tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; }
-.tag.pass { background: var(--good-bg); color: var(--good); } .tag.watch { background: var(--warn-bg); color: var(--warn); } .tag.red { background: var(--bad-bg); color: var(--brick); }
+.tag.unicorn { background: var(--uni-bg); color: var(--uni); } .tag.pass { background: var(--good-bg); color: var(--good); } .tag.watch { background: var(--warn-bg); color: var(--warn); } .tag.fail { background: var(--bad-bg); color: var(--brick); }
+.tag b { font-size: 14px; margin-left: 4px; }
+.tierhead { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
+.tierhead h3 { font-family: var(--f-display); font-size: 15px; margin: 0; }
+.scale { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
 details.rejected summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 details.rejected .row2 { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
 details.rejected .row2 span:last-child { font-family: var(--f-mono); color: var(--brick); text-align: right; }
@@ -171,12 +176,13 @@ footer { color: var(--muted); font-size: 13px; max-width: 75ch; }
 
   <section class="panel" id="shortPanel">
     <div class="btns" style="justify-content:space-between; align-items:baseline">
-      <h2>Shortlist</h2>
+      <h2>Triage</h2>
       <span class="label" id="shortCount">From your Redfin alerts</span>
     </div>
-    <p class="hint" style="margin:0">Each new alert is triaged hourly from 7am to 10pm. Listings that cash-flow after taxes, insurance, management, vacancy and reserves land here. Rents come from your per-bedroom neighborhood scale. Photos are not reviewed yet, so open the listing before you act.</p>
-    <div class="cards" id="cards"></div>
-    <details class="rejected" id="rejected" hidden><summary id="rejSummary">Rejected</summary><div id="rejList"></div></details>
+    <p class="hint" style="margin:0">Each new alert is triaged hourly from 7am to 10pm. The score is monthly cash flow after taxes, insurance, management, vacancy, reserves and the mortgage: $5 a month = 1 point, so $500/mo scores 100. A high-severity red flag in the listing text caps a listing at Watch. Photos are not reviewed, so open the listing before you act.</p>
+    <div class="scale"><span><span class="tag unicorn">UNICORN</span> over 100</span><span><span class="tag pass">PASS</span> 40–100</span><span><span class="tag watch">WATCH</span> 1–39</span><span><span class="tag fail">FAIL</span> 0 or below</span></div>
+    <div id="tiers"></div>
+    <details class="rejected" id="rejected" hidden><summary id="rejSummary">Fail</summary><div id="rejList"></div></details>
   </section>
 
   <div class="grid">
@@ -433,43 +439,54 @@ $("deal").addEventListener("submit", e => e.preventDefault());
 /* ---------------- Shortlist ---------------- */
 let listings = [];
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+const TIERS = [["unicorn", "Unicorns"], ["pass", "Pass"], ["watch", "Watch"]];
+const tierOf = x => x.tier || ({ pass: "pass", watch: "watch", red: "fail" })[x.verdict] || "watch";
+function card(x) {
+  const t = tierOf(x), c = el("article", "card " + t);
+  const top = el("div", "btns"); top.style.justifyContent = "space-between"; top.style.alignItems = "center";
+  const tag = el("span", "tag " + t, t.toUpperCase()); tag.append(el("b", null, String(x.score ?? "")));
+  top.append(tag, el("span", "meta", money(x.price)));
+  c.append(top, el("h3", null, x.address));
+  c.append(el("div", "meta", `${x.neighborhood} · ${x.zip || "ZIP?"} · ${x.units || 2} units · ${x.beds ?? "?"} bd / ${x.baths ?? "?"} ba · ${x.jurisdiction}`));
+  const nums = el("div", "nums");
+  [[money(x.cashFlowMo) + "/mo", "Cash flow"], [x.coc + "%", "Cash-on-cash"], [x.dscr, "DSCR"],
+   [x.taxToRent + "%", "Tax ÷ rent"], [x.maxOffer ? money(x.maxOffer) : "—", "Max offer"], [money((x.rents || []).reduce((s, v) => s + v, 0)), "Rent/mo"]]
+    .forEach(([v, lab]) => { const d = el("div"); d.append(el("b", null, String(v)), el("span", null, lab)); nums.append(d); });
+  c.append(nums);
+  if (x.redFlags?.length) { const ul = el("ul"); x.redFlags.forEach(f => ul.append(el("li", f.severity, `${f.flag} (“${f.match}”)`))); c.append(ul); }
+  c.append(el("div", "src", `Rent: ${x.rentSource}. Taxes: ${x.taxSource}.`));
+  (x.notes || []).forEach(n => c.append(el("div", "src", n)));
+  const b = el("div", "btns");
+  const load = el("button", null, "Load into calculator"); load.type = "button";
+  load.onclick = () => { fill({ addr: x.address, zip: x.zip, price: x.price, r1: x.rents?.[0] ?? "", r2: x.rents?.[1] ?? "", r3: x.rents?.[2] ?? "", r4: x.rents?.[3] ?? "", taxes: x.taxes }); $("exampleTag").hidden = true; $("deal").scrollIntoView({ behavior: "smooth" }); };
+  b.append(load);
+  if (x.url) { const a = el("a", null, "Open listing"); a.href = x.url; a.target = "_blank"; a.rel = "noopener"; a.style.alignSelf = "center"; b.append(a); }
+  const dis = el("button", "ghost", "Dismiss"); dis.type = "button";
+  dis.onclick = async () => { dis.disabled = true; try { await db.collection("listings").doc(x.id).update({ status: "dismissed" }); } catch { dis.textContent = "Couldn't dismiss"; } };
+  b.append(dis); c.append(b);
+  return c;
+}
 function renderShortlist(state) {
-  const cards = $("cards"); cards.innerHTML = "";
-  if (state === "off") { cards.append(el("p", "hint", "The shortlist isn't available in this view. Open the page on claude.ai while signed in.")); return; }
-  if (state === "loading") { cards.append(el("p", "hint", "Loading the shortlist…")); return; }
-  const keep = listings.filter(x => x.status === "shortlist").sort((a, b) => (b.cashFlowMo || 0) - (a.cashFlowMo || 0));
-  const rej = listings.filter(x => x.status === "rejected");
-  $("shortCount").textContent = `${keep.length} on the shortlist · ${rej.length} rejected`;
-  if (!keep.length) cards.append(el("p", "hint", "Nothing on the shortlist yet. When Redfin sends a South Buffalo alert, the next hourly check adds every listing that cash-flows."));
-  keep.forEach(x => {
-    const c = el("article", "card " + (x.verdict || "watch"));
-    const top = el("div", "btns"); top.style.justifyContent = "space-between"; top.style.alignItems = "center";
-    top.append(el("span", "tag " + x.verdict, (x.verdict || "").toUpperCase()), el("span", "meta", money(x.price)));
-    c.append(top, el("h3", null, x.address));
-    c.append(el("div", "meta", `${x.neighborhood} · ${x.zip || "ZIP?"} · ${x.beds ?? "?"} bd / ${x.baths ?? "?"} ba · ${x.jurisdiction}`));
-    const nums = el("div", "nums");
-    [[money(x.cashFlowMo) + "/mo", "Cash flow"], [x.coc + "%", "Cash-on-cash"], [x.dscr, "DSCR"],
-     [x.taxToRent + "%", "Tax ÷ rent"], [x.maxOffer ? money(x.maxOffer) : "—", "Max offer"], [money((x.rents || []).reduce((s, v) => s + v, 0)) , "Rent/mo"]]
-      .forEach(([v, t]) => { const d = el("div"); d.append(el("b", null, v), el("span", null, t)); nums.append(d); });
-    c.append(nums);
-    if (x.redFlags?.length) { const ul = el("ul"); x.redFlags.forEach(f => ul.append(el("li", f.severity, `${f.flag} (“${f.match}”)`))); c.append(ul); }
-    c.append(el("div", "src", `Rent: ${x.rentSource}. Taxes: ${x.taxSource}.`));
-    (x.notes || []).forEach(n => c.append(el("div", "src", n)));
-    const b = el("div", "btns");
-    const load = el("button", null, "Load into calculator"); load.type = "button";
-    load.onclick = () => { fill({ addr: x.address, zip: x.zip, price: x.price, r1: x.rents?.[0] ?? "", r2: x.rents?.[1] ?? "", r3: x.rents?.[2] ?? "", r4: x.rents?.[3] ?? "", taxes: x.taxes }); $("exampleTag").hidden = true; $("deal").scrollIntoView({ behavior: "smooth" }); };
-    b.append(load);
-    if (x.url) { const a = el("a", null, "Open listing"); a.href = x.url; a.target = "_blank"; a.rel = "noopener"; a.style.alignSelf = "center"; b.append(a); }
-    const dis = el("button", "ghost", "Dismiss"); dis.type = "button";
-    dis.onclick = async () => { dis.disabled = true; try { await db.collection("listings").doc(x.id).update({ status: "dismissed" }); } catch { dis.textContent = "Couldn't dismiss"; } };
-    b.append(dis); c.append(b);
-    cards.append(c);
+  const box = $("tiers"); box.innerHTML = "";
+  if (state === "off") { box.append(el("p", "hint", "The triage list isn't available in this view. Open the page on claude.ai while signed in.")); return; }
+  if (state === "loading") { box.append(el("p", "hint", "Loading…")); return; }
+  const live = listings.filter(x => x.status !== "dismissed");
+  const fail = live.filter(x => tierOf(x) === "fail").sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const counts = TIERS.map(([t, name]) => `${live.filter(x => tierOf(x) === t).length} ${name.toLowerCase()}`);
+  $("shortCount").textContent = [...counts, `${fail.length} fail`].join(" · ");
+  if (!live.length) box.append(el("p", "hint", "Nothing triaged yet. When Redfin sends a South Buffalo alert, the next hourly check scores every listing in it."));
+  TIERS.forEach(([t, name]) => {
+    const list = live.filter(x => tierOf(x) === t).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    if (!list.length) return;
+    const h = el("div", "tierhead"); h.append(el("span", "tag " + t, name.toUpperCase()), el("span", "meta", `${list.length}`));
+    const cards = el("div", "cards"); list.forEach(x => cards.append(card(x)));
+    box.append(h, cards);
   });
-  $("rejected").hidden = !rej.length;
-  $("rejSummary").textContent = `Rejected (${rej.length}): negative cash flow at the asking price`;
+  $("rejected").hidden = !fail.length;
+  $("rejSummary").textContent = `Fail (${fail.length}): negative cash flow at the asking price`;
   const rl = $("rejList"); rl.innerHTML = "";
-  rej.sort((a, b) => (b.alertDate || "").localeCompare(a.alertDate || "")).forEach(x => {
-    const r = el("div", "row2"); r.append(el("span", null, `${x.address} · ${x.neighborhood} · ${money(x.price)}`), el("span", null, money(x.cashFlowMo) + "/mo")); rl.append(r);
+  fail.forEach(x => {
+    const r = el("div", "row2"); r.append(el("span", null, `${x.address} · ${x.neighborhood} · ${money(x.price)}`), el("span", null, `${x.score ?? ""} · ${money(x.cashFlowMo)}/mo`)); rl.append(r);
   });
 }
 let db = null;
