@@ -1,0 +1,476 @@
+<title>Buffalo Rental Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a working desk. Left column = deal inputs on a ruled ledger; right = verdict, numbers, and the agent chat. Stacks on phones. */
+:root {
+  --bg: #eef1f4;          /* overcast lake sky */
+  --panel: #ffffff;
+  --ink: #17212b;
+  --muted: #5b6876;
+  --rule: #d5dce3;
+  --accent: #1f5f8b;      /* Lake Erie blue */
+  --accent-ink: #ffffff;
+  --brick: #9c3d2e;       /* Buffalo grain-elevator brick, used for red flags */
+  --good: #23704a;
+  --warn: #9a6a00;
+  --good-bg: #e2f1e8; --warn-bg: #fbf0d4; --bad-bg: #f6e1dc;
+  --chip: #e4ebf1;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f151b; --panel: #172029; --ink: #e5ebf0; --muted: #94a3b2; --rule: #2a3642;
+  --accent: #6fb2e0; --accent-ink: #0b1218; --brick: #e78b78; --good: #7fd1a3; --warn: #e8c062;
+  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f151b; --panel: #172029; --ink: #e5ebf0; --muted: #94a3b2; --rule: #2a3642;
+  --accent: #6fb2e0; --accent-ink: #0b1218; --brick: #e78b78; --good: #7fd1a3; --warn: #e8c062;
+  --good-bg: #16302a; --warn-bg: #2f2814; --bad-bg: #3a1f1a; --chip: #22303c; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 4vw, 36px); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); margin: 0; max-width: 60ch; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 18px; margin: 0; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+
+/* Ledger inputs */
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 0; }
+legend { padding: 0; margin-bottom: 6px; }
+.row { display: grid; grid-template-columns: 1fr 120px; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.row:last-child { border-bottom: 0; }
+.row label { font-size: 14px; }
+.row small { display: block; color: var(--muted); font-size: 12px; line-height: 1.3; }
+input, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 8px; width: 100%; }
+.row input { font-family: var(--f-mono); font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rents { display: flex; flex-wrap: wrap; gap: 6px; }
+.rents input { width: 84px; }
+
+button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; padding: 8px 14px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Verdict */
+.verdict { display: grid; gap: 6px; }
+.pill { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.pill b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; padding-top: 2px; }
+.pill.pass { background: var(--good-bg); color: var(--good); }
+.pill.watch { background: var(--warn-bg); color: var(--warn); }
+.pill.red { background: var(--bad-bg); color: var(--brick); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.kpi { background: var(--panel); padding: 10px 12px; display: grid; gap: 2px; }
+.kpi .v { font-family: var(--f-mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi .v.bad { color: var(--brick); } .kpi .v.ok { color: var(--good); } .kpi .v.meh { color: var(--warn); }
+.kpi .t { font-size: 12px; color: var(--muted); }
+
+.taxbar { display: grid; gap: 6px; }
+.track { position: relative; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--good-bg) 0 50%, var(--warn-bg) 50% 66.6%, var(--bad-bg) 66.6% 100%); border: 1px solid var(--rule); }
+.mark { position: absolute; top: -4px; width: 3px; height: 16px; background: var(--ink); border-radius: 2px; transform: translateX(-1px); }
+.ticks { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td { padding: 5px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
+td:last-child { text-align: right; font-family: var(--f-mono); }
+tr.total td { font-weight: 600; border-bottom: 0; }
+
+.offer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 12px 14px; border-radius: 8px; background: var(--chip); }
+.offer .v { font-family: var(--f-mono); font-size: 22px; font-weight: 600; color: var(--accent); }
+
+/* Saved deals */
+.saved { display: flex; flex-wrap: wrap; gap: 6px; }
+.saved button { background: var(--chip); color: var(--ink); border-color: var(--rule); font-weight: 400; font-size: 13px; padding: 4px 10px; }
+
+/* Agent chat */
+.stages { display: flex; flex-wrap: wrap; gap: 6px; }
+.stages button { background: var(--chip); color: var(--ink); border: 1px solid var(--rule); font-weight: 600; font-size: 13px; padding: 5px 10px; border-radius: 999px; }
+.log { display: grid; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.msg { padding: 10px 12px; border-radius: 8px; min-width: 0; overflow-wrap: anywhere; }
+.msg.user { background: var(--chip); justify-self: end; max-width: 85%; }
+.msg.bot { border: 1px solid var(--rule); }
+.msg.bot p { margin: 0 0 8px; } .msg.bot p:last-child { margin-bottom: 0; }
+.msg.bot ul { margin: 0 0 8px; padding-left: 20px; }
+.msg.bot pre { font-family: var(--f-mono); font-size: 12px; overflow-x: auto; background: var(--bg); padding: 8px; border-radius: 6px; margin: 0 0 8px; }
+.msg.bot code { font-family: var(--f-mono); font-size: 13px; }
+.msg.note { color: var(--muted); font-size: 13px; padding: 0; }
+.ask { display: grid; gap: 8px; }
+.ask textarea { min-height: 70px; resize: vertical; }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+footer { color: var(--muted); font-size: 13px; max-width: 75ch; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Buffalo <span>Rental Desk</span></h1>
+      <p class="sub">Underwrite a 1–4 unit rental in Buffalo or the inner-ring suburbs, see how much of the rent goes to property tax, and ask the agent about any step from search to management.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Inputs -->
+    <form class="panel" id="deal" autocomplete="off">
+      <div class="btns" style="justify-content: space-between; align-items: center;">
+        <h2>The property</h2>
+        <span class="label" id="exampleTag">Example double</span>
+      </div>
+      <fieldset>
+        <legend class="label">Price &amp; income</legend>
+        <div class="row"><label for="addr">Address / nickname</label><input id="addr" style="text-align:left; font-family: var(--f-body)" value="Example: N. Buffalo double"></div>
+        <div class="row"><label for="price">Purchase price</label><input id="price" type="number" inputmode="decimal" value="189000"></div>
+        <div class="row" style="grid-template-columns: 1fr;"><label>Monthly rent per unit <small>Lower / upper, up to 4 units. Leave blank if fewer.</small></label>
+          <div class="rents"><input id="r1" type="number" inputmode="decimal" value="1150" aria-label="Unit 1 rent"><input id="r2" type="number" inputmode="decimal" value="1050" aria-label="Unit 2 rent"><input id="r3" type="number" inputmode="decimal" aria-label="Unit 3 rent"><input id="r4" type="number" inputmode="decimal" aria-label="Unit 4 rent"></div></div>
+        <div class="row"><label for="other">Other income /mo <small>Parking, laundry</small></label><input id="other" type="number" inputmode="decimal" value="0"></div>
+      </fieldset>
+      <fieldset>
+        <legend class="label">Taxes</legend>
+        <div class="row"><label for="taxes">Annual taxes <small>City + county (or town, village, school). Remove the seller's STAR / senior / vet exemptions.</small></label><input id="taxes" type="number" inputmode="decimal" value="4100"></div>
+        <div class="row"><label for="trate">Rate per $1,000 <small>Optional. Re-figures taxes on the price as a reassessment downside.</small></label><input id="trate" type="number" inputmode="decimal" step="0.01" value=""></div>
+      </fieldset>
+      <fieldset>
+        <legend class="label">Operating</legend>
+        <div class="row"><label for="ins">Insurance /yr</label><input id="ins" type="number" inputmode="decimal" value="2100"></div>
+        <div class="row"><label for="vac">Vacancy %</label><input id="vac" type="number" inputmode="decimal" value="8"></div>
+        <div class="row"><label for="maint">Maintenance % of rent</label><input id="maint" type="number" inputmode="decimal" value="8"></div>
+        <div class="row"><label for="capex">CapEx reserve % of rent</label><input id="capex" type="number" inputmode="decimal" value="8"></div>
+        <div class="row"><label for="mgmt">Management % <small>0 if you self-manage</small></label><input id="mgmt" type="number" inputmode="decimal" value="9"></div>
+        <div class="row"><label for="util">Owner-paid utilities /mo</label><input id="util" type="number" inputmode="decimal" value="0"></div>
+        <div class="row"><label for="oth">Other /yr <small>Rental registry, lawn, snow</small></label><input id="oth" type="number" inputmode="decimal" value="600"></div>
+      </fieldset>
+      <fieldset>
+        <legend class="label">Financing</legend>
+        <div class="row"><label for="down">Down payment %</label><input id="down" type="number" inputmode="decimal" value="25"></div>
+        <div class="row"><label for="rate">Interest rate %</label><input id="rate" type="number" inputmode="decimal" step="0.01" value="7.25"></div>
+        <div class="row"><label for="term">Term (years)</label><input id="term" type="number" inputmode="decimal" value="30"></div>
+        <div class="row"><label for="close">Closing costs % of price</label><input id="close" type="number" inputmode="decimal" value="4"></div>
+        <div class="row"><label for="rehab">Upfront rehab $</label><input id="rehab" type="number" inputmode="decimal" value="0"></div>
+      </fieldset>
+      <div class="btns">
+        <button type="button" id="saveBtn">Save this deal</button>
+        <button type="button" class="ghost" id="clearBtn">Clear inputs</button>
+      </div>
+      <div class="saved" id="saved" aria-label="Saved deals"></div>
+    </form>
+
+    <!-- Results + agent -->
+    <div style="display:grid; gap:20px; min-width:0;">
+      <section class="panel" aria-live="polite">
+        <h2 id="resTitle">Verdict</h2>
+        <div class="verdict" id="verdict"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="taxbar">
+          <div class="btns" style="justify-content:space-between"><span class="label">Taxes as share of gross rent</span><span class="label" id="taxPct"></span></div>
+          <div class="track"><div class="mark" id="taxMark"></div></div>
+          <div class="ticks"><span>0%</span><span>15% watch</span><span>20% red</span><span>30%</span></div>
+        </div>
+        <div class="offer"><span class="label">Max offer at DSCR 1.20 and 8% cash-on-cash</span><span class="v" id="maxOffer">—</span></div>
+        <div class="table-wrap"><table id="pl"></table></div>
+      </section>
+
+      <section class="panel" id="agentPanel">
+        <div class="btns" style="justify-content:space-between; align-items:baseline">
+          <h2>Ask the agent</h2>
+          <span class="label">Sees the deal on the left</span>
+        </div>
+        <div class="stages" id="stages"></div>
+        <div class="log" id="log">
+          <div class="msg note">Pick a stage or type a question. The agent can re-run the calculator with different numbers. It can't browse the web from this page, so it will tell you which tax rates, interest rates and rules to confirm at the source.</div>
+        </div>
+        <form class="ask" id="askForm">
+          <label for="q" class="label">Your question</label>
+          <textarea id="q" placeholder="e.g. What would I need to offer on this double to make 10% cash-on-cash with an FHA house hack?"></textarea>
+          <div class="btns"><button type="submit" id="sendBtn">Ask</button><button type="button" class="ghost" id="stopBtn" hidden>Stop</button><button type="button" class="ghost" id="resetBtn">New conversation</button></div>
+        </form>
+        <p class="hint" id="agentOff" hidden>The agent chat isn't available in this view. The calculator still works. For full research with live web lookups, use the <code>buffalo-rental</code> agent in Claude Code.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer>Decision support, not legal, tax, lending or brokerage advice. Confirm current tax rates with the City of Buffalo / Erie County, and have a New York real estate attorney review every contract. Inside Buffalo city limits the homestead tax rate is the same everywhere, so compare properties by taxes ÷ price and taxes ÷ rent, not by neighborhood reputation.</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIELDS = ["addr","price","r1","r2","r3","r4","other","taxes","trate","ins","vac","maint","capex","mgmt","util","oth","down","rate","term","close","rehab"];
+const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+const money = x => (x < 0 ? "-$" : "$") + Math.round(Math.abs(x)).toLocaleString("en-US");
+const pct = (x, d = 1) => (x * 100).toFixed(d) + "%";
+
+function readInputs() {
+  return {
+    address: $("addr").value.trim(),
+    price: num("price"),
+    rents: ["r1","r2","r3","r4"].map(num).filter(v => v > 0),
+    otherIncome: num("other"), taxes: num("taxes"), taxRatePer1000: num("trate"),
+    insurance: num("ins"), vacancyPct: num("vac"), maintPct: num("maint"), capexPct: num("capex"),
+    mgmtPct: num("mgmt"), utilities: num("util"), otherExpenses: num("oth"),
+    downPct: num("down"), rate: num("rate"), term: num("term") || 30, closingPct: num("close"), rehab: num("rehab"),
+  };
+}
+
+function payment(principal, ratePct, years) {
+  const r = ratePct / 100 / 12, n = years * 12;
+  if (principal <= 0) return 0;
+  return r === 0 ? principal / n : principal * r / (1 - Math.pow(1 + r, -n));
+}
+
+// Same math as buffalo/deal_analyzer.py
+function analyze(a) {
+  const rentMo = a.rents.reduce((s, v) => s + v, 0);
+  const gross = rentMo * 12 + a.otherIncome * 12;
+  const vacancy = gross * a.vacancyPct / 100;
+  const egi = gross - vacancy;
+  const taxes = a.taxRatePer1000 ? Math.max(a.taxes, a.price * a.taxRatePer1000 / 1000) : a.taxes;
+  const expenses = [
+    ["Property taxes", taxes], ["Insurance", a.insurance],
+    ["Maintenance", gross * a.maintPct / 100], ["CapEx reserve", gross * a.capexPct / 100],
+    ["Management", egi * a.mgmtPct / 100], ["Owner-paid utilities", a.utilities * 12],
+    ["Other (registry, lawn, snow)", a.otherExpenses],
+  ];
+  const opex = expenses.reduce((s, [, v]) => s + v, 0);
+  const noi = egi - opex;
+  const loan = a.price * (1 - a.downPct / 100);
+  const debt = payment(loan, a.rate, a.term) * 12;
+  const cashFlow = noi - debt;
+  const cashIn = a.price * (a.downPct + a.closingPct) / 100 + a.rehab;
+  return {
+    gross, vacancy, egi, expenses, opex, noi, loan, debt, cashFlow, cashIn, taxes,
+    capRate: a.price ? noi / a.price : 0, coc: cashIn ? cashFlow / cashIn : 0,
+    dscr: debt ? noi / debt : Infinity, grm: gross ? a.price / gross : 0,
+    rentToPrice: a.price ? rentMo / a.price : 0, effTax: a.price ? taxes / a.price : 0,
+    taxToRent: gross ? taxes / gross : 0, perUnit: a.rents.length ? a.price / a.rents.length : 0,
+  };
+}
+
+function maxOffer(a) {
+  for (let p = Math.floor(a.price * 1.3 / 1000) * 1000; p > 0; p -= 1000) {
+    const r = analyze({ ...a, price: p });
+    if (r.dscr >= 1.2 && r.coc >= 0.08) return p;
+  }
+  return null;
+}
+
+function verdict(r) {
+  const f = [];
+  if (r.taxToRent > 0.20) f.push(["red", `Taxes take ${pct(r.taxToRent, 0)} of gross rent. Above 20% is a red flag.`]);
+  else if (r.taxToRent > 0.15) f.push(["watch", `Taxes take ${pct(r.taxToRent, 0)} of gross rent. Over the 15% target.`]);
+  if (r.dscr < 1.2) f.push(["red", `DSCR ${r.dscr.toFixed(2)}. Most lenders want 1.20 or higher.`]);
+  if (r.coc < 0.08) f.push(["watch", `Cash-on-cash ${pct(r.coc)}. Below the 8% target.`]);
+  if (r.cashFlow < 0) f.push(["red", `Negative cash flow: ${money(r.cashFlow / 12)} a month.`]);
+  return f.length ? f : [["pass", "Meets the tax, DSCR and cash-on-cash screens."]];
+}
+
+function summary(a, r, mo) {
+  return {
+    address: a.address, inputs: a,
+    results: {
+      grossRentAnnual: Math.round(r.gross), noi: Math.round(r.noi), annualDebtService: Math.round(r.debt),
+      annualCashFlow: Math.round(r.cashFlow), cashInvested: Math.round(r.cashIn), taxesUsed: Math.round(r.taxes),
+      capRate: +pct(r.capRate, 2).slice(0, -1), cashOnCashPct: +pct(r.coc, 2).slice(0, -1),
+      dscr: +r.dscr.toFixed(2), grm: +r.grm.toFixed(1), rentToPricePct: +pct(r.rentToPrice, 2).slice(0, -1),
+      effectiveTaxRatePct: +pct(r.effTax, 2).slice(0, -1), taxToRentPct: +pct(r.taxToRent, 1).slice(0, -1),
+      maxOfferAtDscr120Coc8: mo, flags: verdict(r).map(x => x[1]),
+    },
+  };
+}
+
+function render() {
+  const a = readInputs();
+  const out = $("pl"), v = $("verdict"), k = $("kpis");
+  if (!a.price || !a.rents.length) {
+    v.innerHTML = `<div class="pill watch"><b>INPUT</b><span>Enter a price and at least one unit's rent.</span></div>`;
+    k.innerHTML = ""; out.innerHTML = ""; $("maxOffer").textContent = "—"; return;
+  }
+  const r = analyze(a), mo = maxOffer(a);
+  $("resTitle").textContent = a.address ? a.address : "Verdict";
+  v.innerHTML = verdict(r).map(([c, t]) => `<div class="pill ${c}"><b>${c.toUpperCase()}</b><span></span></div>`).join("");
+  verdict(r).forEach(([, t], i) => v.children[i].querySelector("span").textContent = t);
+  const cls = (val, good, ok) => val >= good ? "ok" : val >= ok ? "meh" : "bad";
+  const tiles = [
+    [money(r.cashFlow / 12), "Cash flow / month", r.cashFlow >= 0 ? "ok" : "bad"],
+    [pct(r.coc), "Cash-on-cash", cls(r.coc, 0.08, 0.04)],
+    [isFinite(r.dscr) ? r.dscr.toFixed(2) : "—", "DSCR", cls(r.dscr, 1.2, 1.0)],
+    [pct(r.capRate, 2), "Cap rate", ""],
+    [pct(r.effTax, 2), "Effective tax rate", ""],
+    [pct(r.rentToPrice, 2), "Rent ÷ price (1% rule)", cls(r.rentToPrice, 0.01, 0.008)],
+    [money(r.perUnit), "Price per unit", ""],
+    [money(r.cashIn), "Cash to close + rehab", ""],
+  ];
+  k.innerHTML = tiles.map(([val, t, c]) => `<div class="kpi"><span class="v ${c}">${val}</span><span class="t">${t}</span></div>`).join("");
+  $("taxPct").textContent = pct(r.taxToRent);
+  $("taxMark").style.left = Math.min(100, r.taxToRent / 0.30 * 100) + "%";
+  $("maxOffer").textContent = mo ? money(mo) : "None at these rents and terms";
+  const rows = [["Gross rent (annual)", r.gross], [`Vacancy (${a.vacancyPct}%)`, -r.vacancy], ["Effective gross income", r.egi, true],
+    ...r.expenses.map(([n, x]) => [n, -x]), ["Net operating income", r.noi, true],
+    [`Mortgage (${a.downPct}% down, ${a.rate}%, ${a.term}y)`, -r.debt], ["Annual cash flow", r.cashFlow, true]];
+  out.innerHTML = rows.map(([n, x, t]) => `<tr class="${t ? "total" : ""}"><td></td><td>${money(x)}</td></tr>`).join("");
+  rows.forEach(([n], i) => out.rows[i].cells[0].textContent = n);
+  try { localStorage.setItem("brd:draft", JSON.stringify(Object.fromEntries(FIELDS.map(f => [f, $(f).value])))); } catch {}
+}
+
+function fill(vals) { FIELDS.forEach(f => { if (f in vals) $(f).value = vals[f]; }); render(); }
+
+// Saved deals (this browser only)
+function getSaved() { try { return JSON.parse(localStorage.getItem("brd:saved") || "[]"); } catch { return []; } }
+function drawSaved() {
+  const box = $("saved"); box.innerHTML = "";
+  getSaved().forEach((d, i) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.textContent = d.addr || `Deal ${i + 1}`; b.title = "Load this deal";
+    b.onclick = () => { fill(d); $("exampleTag").hidden = true; };
+    box.append(b);
+  });
+}
+$("saveBtn").onclick = () => {
+  const d = Object.fromEntries(FIELDS.map(f => [f, $(f).value]));
+  const list = getSaved().filter(x => x.addr !== d.addr); list.unshift(d);
+  try { localStorage.setItem("brd:saved", JSON.stringify(list.slice(0, 12))); $("saveBtn").textContent = "Saved"; setTimeout(() => $("saveBtn").textContent = "Save this deal", 1400); }
+  catch { $("saveBtn").textContent = "Can't save in this browser"; }
+  drawSaved();
+};
+$("clearBtn").onclick = () => { ["addr","price","r1","r2","r3","r4","taxes","trate"].forEach(f => $(f).value = ""); $("exampleTag").hidden = true; render(); };
+$("deal").addEventListener("input", () => { $("exampleTag").hidden = true; render(); });
+$("deal").addEventListener("submit", e => e.preventDefault());
+
+try { const d = JSON.parse(localStorage.getItem("brd:draft") || "null"); if (d && d.price) { fill(d); $("exampleTag").hidden = d.addr?.startsWith("Example") ? false : true; } } catch {}
+drawSaved(); render();
+
+/* ---------------- Agent chat ---------------- */
+const RULES = `You are Buffalo Rental Agent, an investor-side advisor for buying, financing, closing on, renting and managing 1-4 unit residential rentals in Buffalo, NY and its inner-ring suburbs, focused on low property-tax burden relative to rent. You are not an attorney, broker, lender, CPA or insurance agent; say when a step needs one ("Professional check:").
+
+Rules:
+- You cannot browse from here. Never state a current tax rate, interest rate, HUD FMR, fee or ordinance detail as fact; give a typical range if useful, label it "Assumption:", and name the exact source to confirm (City of Buffalo assessment & taxation, Erie County Real Property Tax Services, Open Data Buffalo at data.buffalony.gov, NYS ORPTS, HUD FMR, Erie County Clerk, FEMA flood map, the town/village/school district).
+- Use the analyze_deal tool for any numbers (what-if prices, rents, rates, down payments). Don't do the math in your head.
+- Be conservative: lower rent comps, 8-10% vacancy in the city, real maintenance and CapEx for old WNY housing, taxes with the seller's STAR/senior/vet exemptions removed, and taxes re-figured on purchase price as a downside.
+- Low tax in Buffalo: inside city limits the homestead rate is uniform citywide (city levy funds the Buffalo schools; Erie County bills separately), so differences come from assessment vs. price and rent. Judge by effective tax rate (taxes/price) and taxes/gross rent (target under 15%, red flag over 20%). Suburbs each stack county+town+village+school+special districts and many run higher than the city; never assume a suburb is cheaper.
+- Know the local process: Buffalo doubles (upper/lower two-families); FHA/conventional owner-occupied 2-4 unit house hacks; 203(k)/HomeStyle; DSCR and local portfolio lenders; NY is an attorney state; WNY uses the standard REALTOR/Erie County Bar contract with attorney approval, financing and inspection contingencies; abstract of title and survey are customary in WNY; Erie County mortgage recording tax; NY Property Condition Disclosure; City of Buffalo rental registry, inspections and lead-safe rules for older housing; NY 2019 HSTPA tenant protections (deposit caps, fee limits, notice periods); statewide source-of-income protection for voucher holders; check whether Buffalo has opted into Good Cause Eviction. Tell the user to verify each against current rules.
+- Never draft anything discriminatory. Screening criteria must apply equally to all applicants.
+- Format: lead with the answer, short paragraphs and bullet lists, numbers from the tool, and end with "Next steps:" listing 1-3 concrete actions. Keep it under about 350 words unless asked for more.`;
+
+const STAGES = [
+  ["Find", "Where in Buffalo and the inner-ring suburbs should I look for a rental with a low tax-to-rent ratio, and which listing and off-market sources should I watch each week?"],
+  ["Evaluate", "Evaluate the deal on the desk. Is it worth pursuing, what's the biggest risk, and what should I inspect or look up before making an offer?"],
+  ["Finance", "Compare financing for the deal on the desk: 25% down investor loan, FHA owner-occupied house hack, and a DSCR loan. Run the numbers for each with the tool, using typical down payments and rates labeled as assumptions."],
+  ["Offer", "Help me set an offer price and contingencies for the deal on the desk, and a negotiation plan if the inspection turns up a furnace or roof issue."],
+  ["Close", "Walk me through closing on a Buffalo rental step by step, with the typical costs I should budget and who does what."],
+  ["Rent", "How do I get this property legally rented in the City of Buffalo: registration, inspections, lead rules, lease, screening and what New York law limits?"],
+  ["Manage", "Should I self-manage or hire a Buffalo property manager for this property? Give me a monthly and seasonal management checklist."],
+];
+
+const tools = [{
+  name: "analyze_deal",
+  description: "Runs the desk's rental underwriting with optional overrides to the current deal and returns NOI, cash flow, cap rate, cash-on-cash, DSCR, effective tax rate, taxes/rent, flags and max offer. Call with no arguments for the deal as entered.",
+  inputSchema: { type: "object", properties: {
+    price: { type: "number" }, rents: { type: "array", items: { type: "number" }, description: "monthly rent per unit" },
+    taxes: { type: "number", description: "annual taxes, exemptions removed" }, taxRatePer1000: { type: "number" },
+    insurance: { type: "number" }, vacancyPct: { type: "number" }, maintPct: { type: "number" }, capexPct: { type: "number" },
+    mgmtPct: { type: "number" }, utilities: { type: "number", description: "monthly owner-paid" }, otherExpenses: { type: "number" },
+    downPct: { type: "number" }, rate: { type: "number" }, term: { type: "number" }, closingPct: { type: "number" }, rehab: { type: "number" },
+  } },
+  execute(input) {
+    const a = { ...readInputs() };
+    for (const [key, val] of Object.entries(input || {})) {
+      if (key === "rents" && Array.isArray(val)) a.rents = val.map(Number).filter(x => x > 0);
+      else if (key in a && key !== "address" && isFinite(Number(val))) a[key] = Number(val);
+    }
+    if (!a.price || !a.rents.length) throw new Error("Need a price and at least one rent.");
+    const r = analyze(a);
+    return summary(a, r, maxOffer(a));
+  },
+}];
+
+let sample = null, turns = [], ctl = null;
+const log = $("log");
+
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function md(text) {
+  const lines = esc(text).split("\n"); let html = "", list = false, table = [];
+  const inline = s => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const flushTable = () => { if (table.length) { html += `<pre>${table.join("\n")}</pre>`; table = []; } };
+  for (const raw of lines) {
+    const l = raw.trimEnd();
+    if (/^\s*\|/.test(l)) { if (list) { html += "</ul>"; list = false; } table.push(l); continue; }
+    flushTable();
+    const li = l.match(/^\s*(?:[-*]|\d+\.)\s+(.*)/);
+    if (li) { if (!list) { html += "<ul>"; list = true; } html += `<li>${inline(li[1])}</li>`; continue; }
+    if (list) { html += "</ul>"; list = false; }
+    if (!l.trim()) continue;
+    const h = l.match(/^#{1,4}\s+(.*)/);
+    html += h ? `<p><strong>${inline(h[1])}</strong></p>` : `<p>${inline(l)}</p>`;
+  }
+  flushTable(); if (list) html += "</ul>";
+  return html;
+}
+function bubble(cls, text) {
+  const d = document.createElement("div"); d.className = "msg " + cls;
+  if (cls === "bot") d.innerHTML = md(text); else d.textContent = text;
+  log.append(d); log.scrollTop = log.scrollHeight; return d;
+}
+const ERR = {
+  rate_limited: "Too many questions in a short time, or your Claude usage limit was reached. Try again in a bit.",
+  session_expired: "Your Claude session expired. Sign in again, then ask.",
+  refused: "Claude declined that question. Try rephrasing it.",
+  empty_completion: "No answer came back. Try a shorter or simpler question.",
+  prompt_too_large: "The conversation got too long. Start a new conversation.",
+};
+function disableAgent() { $("askForm").hidden = true; $("stages").hidden = true; $("agentOff").hidden = false; }
+
+async function ask(question) {
+  if (!sample || !question.trim()) return;
+  const deal = (() => { const a = readInputs(); if (!a.price || !a.rents.length) return "No deal entered yet."; return JSON.stringify(summary(a, analyze(a), maxOffer(a))); })();
+  turns.push({ role: "user", content: `${question}\n\n[Deal currently on the desk: ${deal}]` });
+  if (turns.length > 12) turns = turns.slice(-12);
+  while (turns.length && turns[0].role !== "user") turns.shift();
+  bubble("user", question);
+  const out = bubble("bot", "Thinking…");
+  $("sendBtn").disabled = true; $("stopBtn").hidden = false;
+  ctl = new AbortController();
+  try {
+    const { text, truncated } = await sample([{ role: "user", content: RULES }, ...turns], {
+      tools, signal: ctl.signal, onText: ({ text }) => { out.innerHTML = md(text); log.scrollTop = log.scrollHeight; },
+    });
+    turns.push({ role: "assistant", content: text });
+    if (truncated) bubble("note", "That answer was cut short. Ask a narrower follow-up.");
+  } catch (e) {
+    if (e && e.text) out.innerHTML = md(e.text); else out.remove();
+    turns.pop();
+    const code = e && e.code;
+    if (["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(code)) disableAgent();
+    else if (code === "tools_unavailable") { tools.length = 0; bubble("note", "This view can't run the calculator for the agent. Ask again; it will use the deal summary instead."); }
+    else if (code !== "cancelled") bubble("note", ERR[code] || "The connection dropped. Ask again.");
+  } finally { $("sendBtn").disabled = false; $("stopBtn").hidden = true; ctl = null; }
+}
+
+STAGES.forEach(([name, prompt]) => {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = name; b.title = prompt;
+  b.onclick = () => ask(prompt); $("stages").append(b);
+});
+$("askForm").addEventListener("submit", e => { e.preventDefault(); const q = $("q").value; $("q").value = ""; ask(q); });
+$("q").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("askForm").requestSubmit(); });
+$("stopBtn").onclick = () => ctl?.abort();
+$("resetBtn").onclick = () => { ctl?.abort(); turns = []; [...log.querySelectorAll(".msg:not(:first-child)")].forEach(n => n.remove()); };
+
+(async () => {
+  if (!window.claude?.use) { disableAgent(); return; }
+  sample = await window.claude.use("sample");
+  if (!sample) { disableAgent(); return; }
+  try { const lim = await sample.limits(); if (!lim.tools) tools.length = 0; } catch {}
+})();
+</script>

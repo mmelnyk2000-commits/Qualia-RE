@@ -2,6 +2,10 @@
 
 A Claude Code agent and deal calculator for buying and running 1-4 unit rentals in Buffalo, NY, with a focus on keeping property-tax burden low relative to rent.
 
+## Web page (easiest)
+
+`buffalo/desk.html` is the Buffalo Rental Desk: a deal calculator plus an "Ask the agent" chat. It's published as a private claude.ai artifact at https://claude.ai/artifact/9jaZ98Mnsz8mPJk8EviP7V and works on a phone. The chat runs on your Claude account and can re-run the calculator, but it can't browse the web. Use the Claude Code agent below for live lookups of listings, tax rates and laws.
+
 ## Using the agent
 
 In Claude Code, from this repo, ask for it by name:
