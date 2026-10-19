@@ -26,8 +26,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from deal_analyzer import analyze, max_offer  # noqa: E402
 
-# Rent model: first bedroom + each additional bedroom, at Woodlawn rates,
-# scaled by neighborhood. Ranking and the Woodlawn/Caz Park anchors are the
+# Rent model: first bedroom at Woodlawn rate scaled by neighborhood, plus a
+# flat amount for each additional bedroom (location moves the base, not the
+# bedroom premium). Floor is 80%, near the HUD 2-bed Fair Market Rent. Ranking and the Woodlawn/Caz Park anchors are the
 # owner's; the steps between are assumptions to tune in criteria.md.
 BASE_FIRST_BED = 1000
 BASE_EXTRA_BED = 200
@@ -35,13 +36,13 @@ NEIGHBORHOODS = {
     # name: (rent multiplier, tax jurisdiction)
     "Woodlawn": (1.00, "Town of Hamburg"),
     "Caz Park": (0.90, "City of Buffalo"),
-    "Larkinville": (0.85, "City of Buffalo"),
-    "First Ward": (0.80, "City of Buffalo"),
-    "Lackawanna": (0.80, "City of Lackawanna"),
-    "Abbott-McKinley": (0.75, "City of Buffalo"),
-    "South Abbott": (0.70, "City of Buffalo"),
-    "South Park": (0.65, "City of Buffalo"),
-    "Triangle": (0.60, "City of Buffalo"),
+    "Larkinville": (0.88, "City of Buffalo"),
+    "First Ward": (0.86, "City of Buffalo"),
+    "Lackawanna": (0.86, "City of Lackawanna"),
+    "Abbott-McKinley": (0.84, "City of Buffalo"),
+    "South Abbott": (0.83, "City of Buffalo"),
+    "South Park": (0.82, "City of Buffalo"),
+    "Triangle": (0.80, "City of Buffalo"),
 }
 ALIASES = {
     "cazenovia": "Caz Park", "caz": "Caz Park", "cazenovia park": "Caz Park",
@@ -50,7 +51,7 @@ ALIASES = {
     "south park": "South Park", "the triangle": "Triangle",
     "larkin": "Larkinville", "woodlawn": "Woodlawn", "lackawanna": "Lackawanna",
 }
-UNKNOWN_MULTIPLIER = 0.60  # unknown neighborhood: price it like the weakest one
+UNKNOWN_MULTIPLIER = 0.80  # unknown neighborhood: price it like the weakest one
 
 # Tax estimate when the listing gives no tax figure: share of price.
 # UNVERIFIED placeholders, always replaced by the real bill before an offer.
@@ -115,7 +116,7 @@ def split_beds(total, units):
 def rent_for(beds, mult):
     if beds <= 0:
         return 0
-    return round((BASE_FIRST_BED + BASE_EXTRA_BED * (beds - 1)) * mult)
+    return round(BASE_FIRST_BED * mult + BASE_EXTRA_BED * (beds - 1))
 
 
 def scan(text):
@@ -146,7 +147,7 @@ def triage(listing):
     else:
         unit_beds = listing.get("unit_beds") or split_beds(listing.get("beds") or 2 * units, units)
         rents = [rent_for(b, mult) for b in unit_beds]
-        rent_source = f"model: {hood or 'unknown'} at {mult:.0%} of Woodlawn, beds per unit {unit_beds}"
+        rent_source = f"model: {hood or 'unknown'} base at {mult:.0%} of Woodlawn + ${BASE_EXTRA_BED}/extra bed, beds per unit {unit_beds}"
 
     if listing.get("taxes"):
         taxes = float(listing["taxes"])

@@ -9,20 +9,20 @@ Used by the buffalo-rental agent and the alert triage. Edit freely.
 - Price: under $250,000
 
 ## Underwriting defaults (Assumption: confirm with real rent comps and the actual tax bill)
-- Rent per unit when the listing doesn't state it, Woodlawn rates: $1,000 for the first bedroom + $200 for each additional bedroom (3-bed = $1,400)
-- Neighborhood scale (share of Woodlawn rent). Woodlawn and Caz Park are your anchors; the steps between are assumptions to adjust:
+- Rent per unit when the listing doesn't state it: first bedroom = $1,000 x neighborhood scale, plus a flat $200 for each additional bedroom (the scale applies to the base only)
+- Neighborhood scale for the base. Woodlawn and Caz Park are your anchors; the floor is 80% (Triangle), close to the HUD 2-bed Fair Market Rent of about $975; the steps between are assumptions to adjust:
 
-  | Neighborhood | Scale | 2-bed | 3-bed | Taxes billed by |
-  |---|---|---|---|---|
-  | Woodlawn | 100% | $1,200 | $1,400 | Town of Hamburg |
-  | Caz Park | 90% | $1,080 | $1,260 | City of Buffalo |
-  | Larkinville | 85% | $1,020 | $1,190 | City of Buffalo |
-  | First Ward | 80% | $960 | $1,120 | City of Buffalo |
-  | Lackawanna | 80% (assumed; you ranked it below Caz Park) | $960 | $1,120 | City of Lackawanna |
-  | Abbott-McKinley | 75% | $900 | $1,050 | City of Buffalo |
-  | South Abbott | 70% | $840 | $980 | City of Buffalo |
-  | South Park | 65% | $780 | $910 | City of Buffalo |
-  | Triangle | 60% | $720 | $840 | City of Buffalo |
+  | Neighborhood | Base scale | 1-bed | 2-bed | 3-bed | Taxes billed by |
+  |---|---|---|---|---|---|
+  | Woodlawn | 100% | $1,000 | $1,200 | $1,400 | Town of Hamburg |
+  | Caz Park | 90% | $900 | $1,100 | $1,300 | City of Buffalo |
+  | Larkinville | 88% | $880 | $1,080 | $1,280 | City of Buffalo |
+  | First Ward | 86% | $860 | $1,060 | $1,260 | City of Buffalo |
+  | Lackawanna | 86% | $860 | $1,060 | $1,260 | City of Lackawanna |
+  | Abbott-McKinley | 84% | $840 | $1,040 | $1,240 | City of Buffalo |
+  | South Abbott | 83% | $830 | $1,030 | $1,230 | City of Buffalo |
+  | South Park | 82% | $820 | $1,020 | $1,220 | City of Buffalo |
+  | Triangle | 80% | $800 | $1,000 | $1,200 | City of Buffalo |
 
   Unknown neighborhood is priced like Triangle. Total beds are split evenly across units unless the listing gives the split.
 - Taxes when the listing doesn't state them (UNVERIFIED until the real bill is pulled): 1.2% of price in the City of Buffalo, 3.0% in Lackawanna, 2.8% in Hamburg
@@ -38,4 +38,4 @@ Used by the buffalo-rental agent and the alert triage. Edit freely.
 - A high-severity red flag in the listing text (as-is, cash only, fire, foundation, no interior access, etc.) caps Pass and Unicorn at Watch; the score itself is unchanged
 
 ## Rent scale notes
-Market check (Trulia, ZIP 14220, June 2026): 1-bed $965, 2-bed $1,150-1,200, 3-bed $1,350. The $200 step per bedroom matches. The Woodlawn and Caz Park base runs about 5-10% low (conservative). The bottom of the scale (Triangle 60% = $720 for a 2-bed) is below the HUD Fair Market Rent of about $975, which a voucher tenant could bring, so it likely understates rent in the lower neighborhoods.
+Market check (Trulia, ZIP 14220, June 2026): 1-bed $965, 2-bed $1,150-1,200, 3-bed $1,350. The $200 step per bedroom matches. The Woodlawn and Caz Park base runs about 5-10% low (conservative). The floor was raised from 60% to 80% (Triangle 2-bed now $1,000, near the HUD Fair Market Rent of about $975) and the scale now applies only to the base rent.
