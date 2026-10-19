@@ -1,10 +1,10 @@
 # Alert triage runbook
 
-What each scheduled check does. The rent scale, tax estimates and red-flag list live in `buffalo/triage.py`; the buy box is in `buffalo/criteria.md`.
+What a check-in does. Runs on request ("check my alerts"); the hourly schedule is paused. The rent scale, tax estimates and red-flag list live in `buffalo/triage.py`; the buy box is in `buffalo/criteria.md`.
 
 Shortlist page: https://claude.ai/artifact/9jaZ98Mnsz8mPJk8EviP7V (database collection `listings`, one document per listing, id = address slug; run state in `meta/triage`).
 
-1. **Find new alerts.** Gmail search `from:redfin.com newer_than:2d -subject:verify`. Read `meta/triage` and skip message ids already in `processedIds`.
+1. **Find new alerts.** Gmail search `from:redfin.com newer_than:30d -subject:verify` (wide window, since check-ins can be days apart). Read `meta/triage` and skip message ids already in `processedIds`.
 2. **Extract listings.** Read each new message as plain text. An alert can hold several listings. For each one take: address, ZIP, price, beds, baths, sqft, the Redfin link, and any remarks or description text. Try WebFetch on the listing link for the description, annual taxes and unit breakdown; if it's blocked, continue with what the email gives. Never invent a field: leave it out.
 3. **Neighborhood.** Assign one of: Woodlawn, Caz Park, Larkinville, First Ward, Lackawanna, Abbott-McKinley, South Abbott, South Park, Triangle, from the street and ZIP. If it could be two, use the lower-ranked one and add a note. If you can't tell, leave it blank (triage then prices it like Triangle).
 4. **Triage.** Write the listings to a JSON file in the scratchpad and run `python3 buffalo/triage.py <file>`.
