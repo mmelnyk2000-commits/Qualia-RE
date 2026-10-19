@@ -6,6 +6,8 @@ A Claude Code agent and deal calculator for buying and running 1-4 unit rentals 
 
 `buffalo/desk.html` is the Buffalo Rental Desk: a deal calculator plus an "Ask the agent" chat. It's published as a private claude.ai artifact at https://claude.ai/artifact/9jaZ98Mnsz8mPJk8EviP7V and works on a phone. The chat runs on your Claude account and can re-run the calculator, but it can't browse the web. Use the Claude Code agent below for live lookups of listings, tax rates and laws.
 
+The page also has a map of Buffalo and inner-ring suburb ZIP codes. City ZIPs and suburbs are shaded differently, because inside the city one homestead rate applies while each suburb stacks its own town, village and school rates. Saved deals show as pass/watch/red on their ZIP. Tap a ZIP to see your deals there or ask the agent about it. ZIP shapes come from 2010 Census ZCTAs (via OpenDataDE/State-zip-code-GeoJSON), simplified by `buffalo/build_map.py`.
+
 ## Using the agent
 
 In Claude Code, from this repo, ask for it by name:
